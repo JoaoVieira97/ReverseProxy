@@ -5,7 +5,7 @@ compiler:
 jdk:
     - oraclejdk8
 before_script:
-    - cd src
+    #    - cd src
 script:
     - javac *.java
 after_script:
