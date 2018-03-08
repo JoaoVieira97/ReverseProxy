@@ -1,0 +1,9 @@
+## Others
+**/*.swp
+**/*.class
+**/*.pdf
+
+## Latex
+**/*.aux
+**/*.log
+**/*.toc
