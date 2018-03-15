@@ -18,6 +18,7 @@ class UDPMonitor{
 	    InetAddress addr = InetAddress.getByName(inet_addr);
 
 		try (DatagramSocket serverSocket = new DatagramSocket()){
+            System.out.println("Sending");
 			while (true){
 				DatagramPacket msgPacket = new DatagramPacket(msg, msg.length, addr, port);
 				serverSocket.send(msgPacket);
