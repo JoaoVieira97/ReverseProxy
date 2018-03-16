@@ -11,15 +11,17 @@ class UDPMonitor{
 	final static byte[] msg = "SIR".getBytes();
 	
 	public static void main(String[] args) throws UnknownHostException, InterruptedException {
-		
-		Thread agentUDPResponse = new Thread(new ListenUDPAgents());
-		agentUDPResponse.start();
 
 	    InetAddress addr = InetAddress.getByName(inet_addr);
 
 		try (DatagramSocket serverSocket = new DatagramSocket()){
+
+			Thread agentUDPResponse = new Thread(new ListenUDPAgents(serverSocket));
+			agentUDPResponse.start();
+
             System.out.println("Sending");
 			while (true){
+				Thread.sleep(3 * 1000);
 				DatagramPacket msgPacket = new DatagramPacket(msg, msg.length, addr, port);
 				serverSocket.send(msgPacket);
 			}
@@ -33,8 +35,29 @@ class UDPMonitor{
 
 class ListenUDPAgents implements Runnable {
 
+	byte[] receiveData;
+	DatagramSocket serverSocket;
+	DatagramPacket receivePacket;
+	String msg;
+
+
+	public ListenUDPAgents(DatagramSocket ss){
+		receiveData = new byte[1024];
+		serverSocket = ss;
+	}
+
     public void run() {
-        System.out.println("TO DO");
-    }
+		while (true){
+			try{
+				receivePacket = new DatagramPacket(receiveData, receiveData.length);
+				serverSocket.receive(receivePacket);
+				msg = new String(receivePacket.getData());
+				System.out.println("Received message: " + msg);
+			}
+			catch (IOException e){
+				e.printStackTrace();
+			}
+		}
+	}
 
 }
