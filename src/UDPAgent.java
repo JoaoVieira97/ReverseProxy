@@ -17,6 +17,9 @@ class UDPAgent{
             InetAddress mcGroupIP=InetAddress.getByName("239.8.8.8");
             MulticastSocket receiveSkt=new MulticastSocket(8888); //create multicast socket that listens on port 8888
             DatagramPacket probeRequest=new DatagramPacket(buf, 10);
+            DatagramSocket sendSkt = new DatagramSocket();
+            byte[] response;
+            DatagramPacket msgR;
 
             System.out.println("Recieving at: "+mcGroupIP);
             receiveSkt.joinGroup(mcGroupIP);
@@ -26,6 +29,13 @@ class UDPAgent{
                 receiveSkt.receive(probeRequest);
                 msg=new String(probeRequest.getData(),probeRequest.getOffset(),probeRequest.getLength());
                 System.out.println("Recieved: "+msg);
+
+                String rcvd = new String(probeRequest.getData(), 0, probeRequest.getLength()) + ", from address: "+ probeRequest.getAddress() + ", port: " + probeRequest.getPort();
+                System.out.println(rcvd);
+
+                response = "Message to Edit".getBytes();
+                msgR = new DatagramPacket(response, response.length, probeRequest.getAddress(), probeRequest.getPort());
+				sendSkt.send(msgR);
             }while(!msg.equals("CT"));
             
             receiveSkt.leaveGroup(mcGroupIP);
