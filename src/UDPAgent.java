@@ -40,25 +40,35 @@ class UDPAgent{
             Mem mem;
             Cpu cpu;
             UDPAgent ua = new UDPAgent();
+            String msg, resp;
+
+            DatagramSocket sendSkt = new DatagramSocket();
+            byte[] response;
+            DatagramPacket msgR;
 
             System.out.println("Recieving at: "+mcGroupIP);
             receiveSkt.joinGroup(mcGroupIP);
 
-            System.out.println("Waiting for data...");
-            receiveSkt.receive(probeRequest);
+            do{
+                System.out.println("Waiting for data...");
+                receiveSkt.receive(probeRequest);
+                msg=new String(probeRequest.getData(),probeRequest.getOffset(),probeRequest.getLength());
+                System.out.println("Recieved: "+msg);
 
-            String msg=new String(probeRequest.getData(),probeRequest.getOffset(),probeRequest.getLength());
-            System.out.println("Recieved: "+msg);
-            
-            if(!msg.equals("")){
+                String rcvd = new String(probeRequest.getData(), 0, probeRequest.getLength()) + ", from address: "+ probeRequest.getAddress() + ", port: " + probeRequest.getPort();
+                System.out.println(rcvd);
+                
                 mem = sigar.getMem();
                 cpu = sigar.getCpu();
                 long memFree = mem.getFree();
                 long memTotal = mem.getTotal();
                 
-                String resp = ua.curIp + ";;" + port + ";;" + memFree;
+                resp = ua.curIp + ";;" + port + ";;" + memFree;
+                response = resp.getBytes();
+                msgR = new DatagramPacket(response, response.length, probeRequest.getAddress(), probeRequest.getPort());
+				sendSkt.send(msgR);
 
-            }
+            }while(!msg.equals("CT"));
 
             receiveSkt.leaveGroup(mcGroupIP);
             receiveSkt.close();
@@ -66,17 +76,5 @@ class UDPAgent{
             e.printStackTrace();
         }
          
-    }
-}
-
-class UDPListener implements Runnable{
-
-    UDPListener(){
-
-    }
-
-    public void run(){
-
-
     }
 }
