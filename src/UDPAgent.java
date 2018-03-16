@@ -15,7 +15,9 @@ class UDPAgent{
     private String curIp; 
    
     UDPAgent(){
-        this.curIp = this.getIp();
+        try{
+            this.curIp = this.getIp();
+        } catch(IOException e){e.printStackTrace();}
     }
     
     //dont know if is safe (verify): TODO

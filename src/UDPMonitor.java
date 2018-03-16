@@ -13,10 +13,11 @@ class UDPMonitor{
 	public static void main(String[] args) throws UnknownHostException, InterruptedException {
 
 	    InetAddress addr = InetAddress.getByName(inet_addr);
+	    Timer t = new Timer();
 
 		try (DatagramSocket serverSocket = new DatagramSocket()){
 
-			Thread agentUDPResponse = new Thread(new ListenUDPAgents(serverSocket));
+			Thread agentUDPResponse = new Thread(new ListenUDPAgents(serverSocket,t));
 			agentUDPResponse.start();
 
             System.out.println("Sending");
@@ -24,6 +25,7 @@ class UDPMonitor{
 				Thread.sleep(3 * 1000);
 				DatagramPacket msgPacket = new DatagramPacket(msg, msg.length, addr, port);
 				serverSocket.send(msgPacket);
+				t.time = System.currentTimeMillis();
 			}
 		}
 		catch (IOException e){
@@ -33,17 +35,24 @@ class UDPMonitor{
 
 }
 
+class Timer{
+	long time;
+}
+
 class ListenUDPAgents implements Runnable {
 
 	byte[] receiveData;
 	DatagramSocket serverSocket;
 	DatagramPacket receivePacket;
 	String msg;
+	Timer t;
+	long endTime;
 
 
-	public ListenUDPAgents(DatagramSocket ss){
+	public ListenUDPAgents(DatagramSocket ss, Timer timer){
 		receiveData = new byte[1024];
 		serverSocket = ss;
+		t = timer;
 	}
 
     public void run() {
@@ -51,8 +60,9 @@ class ListenUDPAgents implements Runnable {
 			try{
 				receivePacket = new DatagramPacket(receiveData, receiveData.length);
 				serverSocket.receive(receivePacket);
+				endTime = System.currentTimeMillis();
 				msg = new String(receivePacket.getData());
-				System.out.println("Received message: " + msg);
+				System.out.println("Received message: " + msg + ", RTT = " + (endTime - t.time) + " ms");
 			}
 			catch (IOException e){
 				e.printStackTrace();
