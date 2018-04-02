@@ -16,9 +16,10 @@ class UDPAgent{
    
     UDPAgent(){
         try{
-        this.curIp = this.getIp();
-        }catch(Exception e){
-        }   
+            this.curIp = this.getIp();
+        } catch(IOException e){
+            e.printStackTrace();
+        }
     }
     
     //dont know if is safe (verify): TODO
@@ -44,14 +45,16 @@ class UDPAgent{
             Cpu cpu;
             UDPAgent ua = new UDPAgent();
             String msg, resp;
-
-            DatagramSocket sendSkt = new DatagramSocket();
+            long memFree, memTotal;
+            float cpuTotalTime, cpuPerc;
             byte[] response;
             DatagramPacket msgR;
 
+            DatagramSocket sendSkt = new DatagramSocket();
+
             System.out.println("Recieving at: "+mcGroupIP);
             receiveSkt.joinGroup(mcGroupIP);
-
+            
             do{
                 System.out.println("Waiting for data...");
                 receiveSkt.receive(probeRequest);
@@ -63,11 +66,12 @@ class UDPAgent{
                 
                 mem = sigar.getMem();
                 cpu = sigar.getCpu();
-                long memFree = mem.getFree();
-                long memTotal = mem.getTotal();
-                long cpuTime = cpu.getTotal();
+                memFree = mem.getFree();
+                memTotal = mem.getTotal();
+                cpuTotalTime = cpu.getTotal(); 
+                cpuPerc = (cpuTotalTime-cpu.getIdle())/cpuTotalTime;
 
-                resp = ua.curIp + ";;" + port + ";;" + cpuTime + ";;" + memFree;
+                resp = ua.curIp + ";;" + port + ";;" + cpuPerc + ";;" + memFree;
                 response = resp.getBytes();
                 msgR = new DatagramPacket(response, response.length, probeRequest.getAddress(), probeRequest.getPort());
 				sendSkt.send(msgR);

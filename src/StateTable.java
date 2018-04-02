@@ -3,7 +3,7 @@ import java.util.ListIterator;
 
 /*
 Table design (each line):
-IP;;Port;;CPU;;RAM;;RTT;;BW
+IP;;Port;;CPU(%);;RAM(free Memory, bytes);;RTT(ms);;BW
 */
 class StateTable{
     private ArrayList<String> table;
