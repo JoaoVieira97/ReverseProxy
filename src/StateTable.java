@@ -1,5 +1,5 @@
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.ListIterator;
 
 /*
 Table design (each line):
@@ -16,14 +16,17 @@ class StateTable{
         this.table.add(s);
     }
 
-    void updateLine(String ip, String s){
-        Iterator<String> it = this.table.iterator();
+    void updateLine(String s){
+        ListIterator<String> it = this.table.listIterator();
         boolean notFound=true;
+        String[] aux = s.split(";;");
+        String ip = aux[0];
+
         while(it.hasNext() && notFound){
             String l = it.next();
-            String[] aux = s.split(";;");
-            if(aux[0].equals(ip)) {
-                l=s;
+            String[] auxL = l.split(";;");
+            if(auxL[0].equals(ip)) {
+                it.set(s);
                 notFound=false;
             }   
         }
@@ -34,7 +37,7 @@ class StateTable{
         String ret=null;
         for(String s: this.table){
             String[] aux = s.split(";;");
-            if(aux[0].equals(ip)) ret=aux[0];
+            if(aux[0].equals(ip)) ret=s;
         }
         return ret;
     }

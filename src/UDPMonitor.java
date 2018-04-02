@@ -9,14 +9,15 @@ class UDPMonitor{
 	final static int port = 8888;
 	final static String inet_addr = "239.8.8.8";
 	final static byte[] msg = "SIR".getBytes();
-	
+    static StateTable st = new StateTable();
+
 	public static void main(String[] args) throws UnknownHostException, InterruptedException {
 
 	    InetAddress addr = InetAddress.getByName(inet_addr);
 
 		try (DatagramSocket serverSocket = new DatagramSocket()){
 
-			Thread agentUDPResponse = new Thread(new ListenUDPAgents(serverSocket));
+			Thread agentUDPResponse = new Thread(new ListenUDPAgents(serverSocket,st));
 			agentUDPResponse.start();
 
             System.out.println("Sending");
@@ -35,25 +36,29 @@ class UDPMonitor{
 
 class ListenUDPAgents implements Runnable {
 
-	byte[] receiveData;
 	DatagramSocket serverSocket;
-	DatagramPacket receivePacket;
-	String msg;
+    StateTable st;
 
-
-	public ListenUDPAgents(DatagramSocket ss){
-		receiveData = new byte[1024];
-		serverSocket = ss;
+	public ListenUDPAgents(DatagramSocket ss, StateTable st){
+		this.serverSocket = ss;
+        this.st = st;
 	}
 
     public void run() {
-		while (true){
+		String msg;
+        DatagramPacket receivePacket;
+        byte[] receiveData = new byte[1024];
+
+        while (true){
 			try{
 				receivePacket = new DatagramPacket(receiveData, receiveData.length);
 				serverSocket.receive(receivePacket);
 				msg = new String(receivePacket.getData());
-				System.out.println("Received message: " + msg);
-			}
+				this.st.updateLine(msg);
+                System.out.println("Received message: " + msg);
+                String[] aux = msg.split(";;");
+			    System.out.println("Received message: " + st.getLine(aux[0]));
+            }
 			catch (IOException e){
 				e.printStackTrace();
 			}

@@ -15,7 +15,10 @@ class UDPAgent{
     private String curIp; 
    
     UDPAgent(){
+        try{
         this.curIp = this.getIp();
+        }catch(Exception e){
+        }   
     }
     
     //dont know if is safe (verify): TODO
@@ -62,8 +65,9 @@ class UDPAgent{
                 cpu = sigar.getCpu();
                 long memFree = mem.getFree();
                 long memTotal = mem.getTotal();
-                
-                resp = ua.curIp + ";;" + port + ";;" + memFree;
+                long cpuTime = cpu.getTotal();
+
+                resp = ua.curIp + ";;" + port + ";;" + cpuTime + ";;" + memFree;
                 response = resp.getBytes();
                 msgR = new DatagramPacket(response, response.length, probeRequest.getAddress(), probeRequest.getPort());
 				sendSkt.send(msgR);
