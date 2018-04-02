@@ -64,8 +64,8 @@ class ListenUDPAgents implements Runnable {
 				serverSocket.receive(receivePacket);
 				endTime = System.currentTimeMillis();
 				msg = new String(receivePacket.getData());
-				
-                msg = msg + ";;" + (endTime - t.time);
+                				
+                msg = receivePacket.getAddress().getHostAddress() + ";;" + receivePacket.getPort() + ";;" + msg + ";;" + (endTime - t.time);
                 this.st.updateLine(msg);
                 String[] aux = msg.split(";;");
 			    System.out.println("Received message: " + st.getLine(aux[0]));

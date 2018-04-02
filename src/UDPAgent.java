@@ -12,25 +12,6 @@ import org.hyperic.sigar.Mem;
 import org.hyperic.sigar.Cpu;
 
 class UDPAgent{
-    private String curIp; 
-   
-    UDPAgent(){
-        try{
-            this.curIp = this.getIp();
-        } catch(IOException e){
-            e.printStackTrace();
-        }
-    }
-    
-    //dont know if is safe (verify): TODO
-    private String getIp() throws IOException {
-        URL url = new URL("http://checkip.amazonaws.com/");
-        URLConnection urlCon = url.openConnection();
-        String ret = null;
-        BufferedReader in = new BufferedReader(new InputStreamReader(urlCon.getInputStream()));
-        ret = in.readLine();
-        return ret;
-    }
 
     public static void main(String[] args){
         try{
@@ -43,9 +24,8 @@ class UDPAgent{
             Sigar sigar = new Sigar();
             Mem mem;
             Cpu cpu;
-            UDPAgent ua = new UDPAgent();
             String msg, resp;
-            long memFree, memTotal;
+            long memFree;
             float cpuTotalTime, cpuPerc;
             byte[] response;
             DatagramPacket msgR;
@@ -67,11 +47,10 @@ class UDPAgent{
                 mem = sigar.getMem();
                 cpu = sigar.getCpu();
                 memFree = mem.getFree();
-                memTotal = mem.getTotal();
                 cpuTotalTime = cpu.getTotal(); 
                 cpuPerc = (cpuTotalTime-cpu.getIdle())/cpuTotalTime;
 
-                resp = ua.curIp + ";;" + port + ";;" + cpuPerc + ";;" + memFree;
+                resp = cpuPerc + ";;" + memFree;
                 response = resp.getBytes();
                 msgR = new DatagramPacket(response, response.length, probeRequest.getAddress(), probeRequest.getPort());
 				sendSkt.send(msgR);
