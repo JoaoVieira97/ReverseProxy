@@ -3,14 +3,13 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.Arrays;
 import javax.crypto.SecretKey;
 import java.security.KeyPairGenerator;
 import java.security.KeyPair;
-
+import java.security.PrivateKey;
+import java.security.NoSuchAlgorithmException;
 
 class UDPMonitor{
 
@@ -32,9 +31,9 @@ class UDPMonitor{
 			byte[] pKeyBytes=pkey.getEncoded();
 			byte[] fullMessage=new byte[msg.length+pKeyBytes.length];
 			System.arraycopy(msg, 0, fullMessage, 0, msg.length);
-			System.arraycopy(pKeyBytes, 0, fullMessage, msg.length, pkeyBytes.length);
+			System.arraycopy(pKeyBytes, 0, fullMessage, msg.length, pKeyBytes.length);
 
-			Thread agentUDPResponse = new Thread(new ListenUDPAgents(serverSocket,st,t));
+			Thread agentUDPResponse = new Thread(new ListenUDPAgents(serverSocket,st,t,keyPair.getPrivate()));
 			agentUDPResponse.start();
 
             System.out.println("Sending");
@@ -62,11 +61,13 @@ class ListenUDPAgents implements Runnable {
     StateTable st;
     Timer t;
     long endTime;
+    PrivateKey pk;
 
-	public ListenUDPAgents(DatagramSocket ss, StateTable st, Timer timer){
+	public ListenUDPAgents(DatagramSocket ss, StateTable st, Timer timer, PrivateKey pk){
 		this.serverSocket = ss;
         this.st = st;
         this.t = timer;
+        this.pk = pk;
 	}
 
     public void run() {
@@ -74,41 +75,24 @@ class ListenUDPAgents implements Runnable {
         DatagramPacket receivePacket;
 
 		byte[] receiveData = new byte[1024];
-		byte[] msgHash,msgInfo,calcHash;
 		
-		try{
-			MessageDigest hasher = MessageDigest.getInstance("SHA-256");
-			while (true){
-				try{
-					receivePacket = new DatagramPacket(receiveData, receiveData.length);
-					serverSocket.receive(receivePacket);
-					endTime = System.currentTimeMillis();
-					String srcIp=receivePacket.getAddress().getHostAddress();
-					
-					receiveData=receivePacket.getData();
-					msgInfo=Arrays.copyOfRange(receiveData,32,receivePacket.getLength());
-					msgHash=Arrays.copyOfRange(receiveData,0,32);
-					hasher.reset();
-					hasher.update(msgInfo);
-					calcHash=hasher.digest();
-					msg=new String(msgInfo);
+        while (true){
+            try{
+                receivePacket = new DatagramPacket(receiveData, receiveData.length);
+                serverSocket.receive(receivePacket);
+                endTime = System.currentTimeMillis();
+                String srcIp=receivePacket.getAddress().getHostAddress();
+                
+                receiveData=receivePacket.getData();
 
-					if(Arrays.toString(calcHash).equals(Arrays.toString(msgHash))){
-						msg = receivePacket.getAddress().getHostAddress() + ";;" + receivePacket.getPort() + ";;" + msg + ";;" + (endTime - t.time);
-						this.st.updateLine(msg);
-						String[] aux = msg.split(";;");
-						System.out.println("Received message: " + st.getLine(aux[0]));
-					}else{
-						System.out.println("Corrupted packet: hashes do not match\n");
-					}
-				}
-				catch (IOException e){
-					e.printStackTrace();
-				}
-			}
-		}catch(NoSuchAlgorithmException e){
-			e.printStackTrace();
+                    msg = receivePacket.getAddress().getHostAddress() + ";;" + receivePacket.getPort() + ";;" + msg + ";;" + (endTime - t.time);
+                    this.st.updateLine(msg);
+                    String[] aux = msg.split(";;");
+                    System.out.println("Received message: " + st.getLine(aux[0]));
+            }
+            catch (IOException e){
+                e.printStackTrace();
+            }
 		}
 	}
-
 }

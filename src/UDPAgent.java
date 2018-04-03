@@ -11,7 +11,7 @@ import org.hyperic.sigar.Sigar;
 import org.hyperic.sigar.Mem;
 import org.hyperic.sigar.Cpu;
 
-import java.security.MessageDigest;
+import javax.crypto.Mac;
 import java.util.Arrays;
 
 class UDPAgent{
@@ -32,10 +32,10 @@ class UDPAgent{
             long memFree;
             float cpuTotalTime, cpuPerc;
             String aux=";;";
-            byte[] response, responseHash, fullResponse;
             byte[] receiveData=new byte[600];
+            byte[] response, fullResponse, hash;
+            Mac hmac256 = Mac.getInstance("HmacSHA256");
             DatagramPacket msgR;
-            MessageDigest hasher = MessageDigest.getInstance("SHA-256");
 
             DatagramSocket sendSkt = new DatagramSocket();
 
@@ -61,13 +61,13 @@ class UDPAgent{
 
                 resp = cpuPerc + ";;" + memFree;
                 response = resp.getBytes("UTF-8");
-                hasher.reset();
-                hasher.update(response);
-                responseHash = hasher.digest(); //calculate hash value of message
-
-                fullResponse=new byte[response.length+responseHash.length];
-                System.arraycopy(responseHash, 0, fullResponse, 0, responseHash.length);
-                System.arraycopy(response, 0, fullResponse, responseHash.length, response.length);
+                hmac256.reset();
+                hmac256.update(response);
+                hash = hmac256.doFinal();
+                
+                fullResponse=new byte[response.length+hash.length];
+                System.arraycopy(hash, 0, fullResponse, 0, hash.length);
+                System.arraycopy(response, 0, fullResponse, hash.length, response.length);
 
                 msgR = new DatagramPacket(fullResponse, fullResponse.length, probeRequest.getAddress(), probeRequest.getPort());
 				sendSkt.send(msgR);
