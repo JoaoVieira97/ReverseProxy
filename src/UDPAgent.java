@@ -55,23 +55,20 @@ class UDPAgent{
                 cpuTotalTime = cpu.getTotal(); 
                 cpuPerc = (cpuTotalTime-cpu.getIdle())/cpuTotalTime;
 
-                resp = ua.curIp + ";;" + port + ";;" + cpuPerc + ";;" + memFree;
+                resp = cpuPerc + ";;" + memFree;
                 response = resp.getBytes("UTF-8");
                 hasher.reset();
                 hasher.update(response);
                 responseHash = hasher.digest(); //calculate hash value of message
 
-                //Debugging
-                System.out.println(responseHash);
-
-                //FIXME
                 fullResponse=new byte[response.length+responseHash.length];
                 System.arraycopy(responseHash, 0, fullResponse, 0, responseHash.length);
                 System.arraycopy(response, 0, fullResponse, responseHash.length, response.length);
                 
                 //Debugging
-                System.out.println(responseHash);
-                System.out.println(Arrays.copyOfRange(fullResponse,0,responseHash.length));
+                System.out.println(Arrays.toString(response));
+                System.out.println(Arrays.toString(responseHash));
+                System.out.println(Arrays.toString(Arrays.copyOfRange(fullResponse,0,responseHash.length)));
 
                 msgR = new DatagramPacket(fullResponse, fullResponse.length, probeRequest.getAddress(), probeRequest.getPort());
 				sendSkt.send(msgR);

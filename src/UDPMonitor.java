@@ -71,23 +71,20 @@ class ListenUDPAgents implements Runnable {
 					serverSocket.receive(receivePacket);
 					endTime = System.currentTimeMillis();
 					receiveData=receivePacket.getData();
-					msgInfo=Arrays.copyOfRange(receiveData,16,receiveData.length);
+					msgInfo=Arrays.copyOfRange(receiveData,16,receivePacket.getLength());
 					msgHash=Arrays.copyOfRange(receiveData,0,16);
-					calcHash=hasher.digest(msgInfo);
+					hasher.reset();
+					hasher.update(msgInfo);
+					calcHash=hasher.digest();
 					msg=new String(msgInfo);
 
-					//Debugging
-					System.out.println(msg);
-					System.out.println("Message Hash:"+msgHash);
-					System.out.println("Calculated hash:"+calcHash);
-
-					if(Arrays.equals(msgHash,calcHash)){
+					if(Arrays.toString(calcHash).equals(Arrays.toString(msgHash))){
 						msg = receivePacket.getAddress().getHostAddress() + ";;" + receivePacket.getPort() + ";;" + msg + ";;" + (endTime - t.time);
 						this.st.updateLine(msg);
 						String[] aux = msg.split(";;");
 						System.out.println("Received message: " + st.getLine(aux[0]));
 					}else{
-						System.out.println("Corrupted packet\n");
+						System.out.println("Corrupted packet: hashes do not match\n");
 					}
 				}
 				catch (IOException e){
