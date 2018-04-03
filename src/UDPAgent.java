@@ -33,7 +33,7 @@ class UDPAgent{
             String aux=";;";
             byte[] response, responseHash, fullResponse;
             DatagramPacket msgR;
-            MessageDigest hasher = MessageDigest.getInstance("MD5");
+            MessageDigest hasher = MessageDigest.getInstance("SHA-256");
 
             DatagramSocket sendSkt = new DatagramSocket();
 
@@ -64,11 +64,6 @@ class UDPAgent{
                 fullResponse=new byte[response.length+responseHash.length];
                 System.arraycopy(responseHash, 0, fullResponse, 0, responseHash.length);
                 System.arraycopy(response, 0, fullResponse, responseHash.length, response.length);
-                
-                //Debugging
-                System.out.println(Arrays.toString(response));
-                System.out.println(Arrays.toString(responseHash));
-                System.out.println(Arrays.toString(Arrays.copyOfRange(fullResponse,0,responseHash.length)));
 
                 msgR = new DatagramPacket(fullResponse, fullResponse.length, probeRequest.getAddress(), probeRequest.getPort());
 				sendSkt.send(msgR);

@@ -64,15 +64,15 @@ class ListenUDPAgents implements Runnable {
 		byte[] msgHash,msgInfo,calcHash;
 		
 		try{
-			MessageDigest hasher = MessageDigest.getInstance("MD5");
+			MessageDigest hasher = MessageDigest.getInstance("SHA-256");
 			while (true){
 				try{
 					receivePacket = new DatagramPacket(receiveData, receiveData.length);
 					serverSocket.receive(receivePacket);
 					endTime = System.currentTimeMillis();
 					receiveData=receivePacket.getData();
-					msgInfo=Arrays.copyOfRange(receiveData,16,receivePacket.getLength());
-					msgHash=Arrays.copyOfRange(receiveData,0,16);
+					msgInfo=Arrays.copyOfRange(receiveData,32,receivePacket.getLength());
+					msgHash=Arrays.copyOfRange(receiveData,0,32);
 					hasher.reset();
 					hasher.update(msgInfo);
 					calcHash=hasher.digest();
