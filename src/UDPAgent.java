@@ -28,10 +28,12 @@ class UDPAgent{
             Mem mem;
             Cpu cpu;
             String msg, resp;
+            String[] requestKeyPair;
             long memFree;
             float cpuTotalTime, cpuPerc;
             String aux=";;";
             byte[] response, responseHash, fullResponse;
+            byte[] receiveData=new byte[600];
             DatagramPacket msgR;
             MessageDigest hasher = MessageDigest.getInstance("SHA-256");
 
@@ -43,7 +45,9 @@ class UDPAgent{
             do{
                 System.out.println("Waiting for data...");
                 receiveSkt.receive(probeRequest);
-                msg=new String(probeRequest.getData(),probeRequest.getOffset(),probeRequest.getLength());
+                receiveData=probeRequest.getData();
+                msg=new String(receiveData,0,probeRequest.getLength());
+                requestKeyPair=msg.split(";;");
                 System.out.println("Recieved: "+msg);
 
                 String rcvd = new String(probeRequest.getData(), 0, probeRequest.getLength()) + ", from address: "+ probeRequest.getAddress() + ", port: " + probeRequest.getPort();

@@ -41,4 +41,12 @@ class StateTable{
         }
         return ret;
     }
+
+    boolean containsIp(String ip){
+        for(String s: this.table){
+            String[] aux = s.split(";;");
+            if(aux[0].equals(ip)) return true;
+        }
+        return false;
+    }
 }
