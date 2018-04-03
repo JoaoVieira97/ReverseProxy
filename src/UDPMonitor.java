@@ -3,6 +3,9 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 class UDPMonitor{
 
@@ -56,23 +59,43 @@ class ListenUDPAgents implements Runnable {
     public void run() {
 		String msg;
         DatagramPacket receivePacket;
-        byte[] receiveData = new byte[1024];
 
-        while (true){
-			try{
-				receivePacket = new DatagramPacket(receiveData, receiveData.length);
-				serverSocket.receive(receivePacket);
-				endTime = System.currentTimeMillis();
-				msg = new String(receivePacket.getData());
-				
-                msg = msg + ";;" + (endTime - t.time);
-                this.st.updateLine(msg);
-                String[] aux = msg.split(";;");
-			    System.out.println("Received message: " + st.getLine(aux[0]));
-            }
-			catch (IOException e){
-				e.printStackTrace();
+		byte[] receiveData = new byte[1024];
+		byte[] msgHash,msgInfo,calcHash;
+		
+		try{
+			MessageDigest hasher = MessageDigest.getInstance("MD5");
+			while (true){
+				try{
+					receivePacket = new DatagramPacket(receiveData, receiveData.length);
+					serverSocket.receive(receivePacket);
+					endTime = System.currentTimeMillis();
+					receiveData=receivePacket.getData();
+					msgInfo=Arrays.copyOfRange(receiveData,16,receiveData.length);
+					msgHash=Arrays.copyOfRange(receiveData,0,16);
+					calcHash=hasher.digest(msgInfo);
+					msg=new String(msgInfo);
+
+					//Debugging
+					System.out.println(msg);
+					System.out.println("Message Hash:"+msgHash);
+					System.out.println("Calculated hash:"+calcHash);
+
+					if(Arrays.equals(msgHash,calcHash)){
+						msg = receivePacket.getAddress().getHostAddress() + ";;" + receivePacket.getPort() + ";;" + msg + ";;" + (endTime - t.time);
+						this.st.updateLine(msg);
+						String[] aux = msg.split(";;");
+						System.out.println("Received message: " + st.getLine(aux[0]));
+					}else{
+						System.out.println("Corrupted packet\n");
+					}
+				}
+				catch (IOException e){
+					e.printStackTrace();
+				}
 			}
+		}catch(NoSuchAlgorithmException e){
+			e.printStackTrace();
 		}
 	}
 

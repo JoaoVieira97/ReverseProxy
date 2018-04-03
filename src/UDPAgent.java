@@ -11,26 +11,10 @@ import org.hyperic.sigar.Sigar;
 import org.hyperic.sigar.Mem;
 import org.hyperic.sigar.Cpu;
 
+import java.security.MessageDigest;
+import java.util.Arrays;
+
 class UDPAgent{
-    private String curIp; 
-   
-    UDPAgent(){
-        try{
-            this.curIp = this.getIp();
-        } catch(IOException e){
-            e.printStackTrace();
-        }
-    }
-    
-    //dont know if is safe (verify): TODO
-    private String getIp() throws IOException {
-        URL url = new URL("http://checkip.amazonaws.com/");
-        URLConnection urlCon = url.openConnection();
-        String ret = null;
-        BufferedReader in = new BufferedReader(new InputStreamReader(urlCon.getInputStream()));
-        ret = in.readLine();
-        return ret;
-    }
 
     public static void main(String[] args){
         try{
@@ -43,12 +27,13 @@ class UDPAgent{
             Sigar sigar = new Sigar();
             Mem mem;
             Cpu cpu;
-            UDPAgent ua = new UDPAgent();
             String msg, resp;
-            long memFree, memTotal;
+            long memFree;
             float cpuTotalTime, cpuPerc;
-            byte[] response;
+            String aux=";;";
+            byte[] response, responseHash, fullResponse;
             DatagramPacket msgR;
+            MessageDigest hasher = MessageDigest.getInstance("MD5");
 
             DatagramSocket sendSkt = new DatagramSocket();
 
@@ -67,13 +52,28 @@ class UDPAgent{
                 mem = sigar.getMem();
                 cpu = sigar.getCpu();
                 memFree = mem.getFree();
-                memTotal = mem.getTotal();
                 cpuTotalTime = cpu.getTotal(); 
                 cpuPerc = (cpuTotalTime-cpu.getIdle())/cpuTotalTime;
 
                 resp = ua.curIp + ";;" + port + ";;" + cpuPerc + ";;" + memFree;
-                response = resp.getBytes();
-                msgR = new DatagramPacket(response, response.length, probeRequest.getAddress(), probeRequest.getPort());
+                response = resp.getBytes("UTF-8");
+                hasher.reset();
+                hasher.update(response);
+                responseHash = hasher.digest(); //calculate hash value of message
+
+                //Debugging
+                System.out.println(responseHash);
+
+                //FIXME
+                fullResponse=new byte[response.length+responseHash.length];
+                System.arraycopy(responseHash, 0, fullResponse, 0, responseHash.length);
+                System.arraycopy(response, 0, fullResponse, responseHash.length, response.length);
+                
+                //Debugging
+                System.out.println(responseHash);
+                System.out.println(Arrays.copyOfRange(fullResponse,0,responseHash.length));
+
+                msgR = new DatagramPacket(fullResponse, fullResponse.length, probeRequest.getAddress(), probeRequest.getPort());
 				sendSkt.send(msgR);
 
             }while(!msg.equals("CT"));
