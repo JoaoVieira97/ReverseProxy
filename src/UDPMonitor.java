@@ -26,6 +26,7 @@ class UDPMonitor{
 		try (DatagramSocket serverSocket = new DatagramSocket()){
 			
 			KeyPairGenerator keyPairGen=KeyPairGenerator.getInstance("RSA");
+			keyPairGen.initialize(2048);
 			KeyPair keyPair=keyPairGen.generateKeyPair();
 			PublicKey pkey=keyPair.getPublic();
 			byte[] pKeyBytes=pkey.getEncoded();
