@@ -3,7 +3,7 @@ import java.util.ListIterator;
 
 /*
 Table design (each line):
-IP;;Port;;CPU(%);;RAM(free Memory, bytes);;RTT(ms);;BW
+IP;;Port;;CPU(%);;RAM(free Memory, bytes);;RTT(ms);;BW;;symetricKey
 */
 class StateTable{
     private ArrayList<String> table;
@@ -34,12 +34,11 @@ class StateTable{
     }
 
     String getLine(String ip){
-        String ret=null;
         for(String s: this.table){
             String[] aux = s.split(";;");
-            if(aux[0].equals(ip)) ret=s;
+            if(aux[0].equals(ip)) return s;
         }
-        return ret;
+        return null;
     }
 
     boolean containsIp(String ip){
@@ -48,5 +47,13 @@ class StateTable{
             if(aux[0].equals(ip)) return true;
         }
         return false;
+    }
+
+    String getKey(String ip){
+        for(String s: this.table){
+            String[] aux = s.split(";;");
+            if(aux[0].equals(ip)) return aux[6];
+        }
+        return null;
     }
 }
