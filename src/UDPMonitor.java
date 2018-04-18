@@ -86,11 +86,17 @@ class ListenUDPAgents implements Runnable {
                 
                 receiveData=receivePacket.getData();
 
-                    msg = receivePacket.getAddress().getHostAddress() + ";;" + receivePacket.getPort() + ";;" + msg + ";;" + (endTime - t.time);
-                    this.st.updateLine(msg);
-                    String[] aux = msg.split(";;");
-                    System.out.println("Received message: " + st.getLine(aux[0]));
-            }
+				//TODO: verify integrity of packet
+
+				if(){
+					msg = receivePacket.getAddress().getHostAddress() + ";;" + receivePacket.getPort() + ";;" + msg + ";;" + (endTime - t.time);
+					this.st.updateLine(msg);
+					String[] aux = msg.split(";;");
+					System.out.println("Received message: " + st.getLine(aux[0]));
+				}else{
+					System.out.println("Integrity of packet not verified");
+				}
+			}
             catch (IOException e){
                 e.printStackTrace();
             }
