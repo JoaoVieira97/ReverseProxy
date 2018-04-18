@@ -10,6 +10,7 @@ import java.security.KeyPairGenerator;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.NoSuchAlgorithmException;
+import javax.crypto.Mac;
 
 class UDPMonitor{
 
@@ -72,13 +73,17 @@ class ListenUDPAgents implements Runnable {
 	}
 
     public void run() {
-		String msg;
-        DatagramPacket receivePacket;
+    	try{
+			String msg;
+	        DatagramPacket receivePacket;
+	        Mac hmac256 = Mac.getInstance("HmacSHA256");
 
-		byte[] receiveData = new byte[1024];
-		
-        while (true){
-            try{
+			byte[] receiveData = new byte[1024];
+			byte[] hashReceived = new byte[32];
+			byte[] msgReceived = new byte[992];
+			byte[] hash;
+
+       		while (true){
                 receivePacket = new DatagramPacket(receiveData, receiveData.length);
                 serverSocket.receive(receivePacket);
                 endTime = System.currentTimeMillis();
@@ -86,9 +91,15 @@ class ListenUDPAgents implements Runnable {
                 
                 receiveData=receivePacket.getData();
 
-				//TODO: verify integrity of packet
+				System.arraycopy(receiveData,0,hashReceived,0,32);
+				System.arraycopy(receiveData,32,msgReceived,0,receiveData.length-32);
 
-				if(){
+				msg = Arrays.toString(msgReceived);
+                hmac256.reset();
+                hmac256.update(msgReceived);
+                hash = hmac256.doFinal();
+
+				if(hash.equals(hashReceived)){
 					msg = receivePacket.getAddress().getHostAddress() + ";;" + receivePacket.getPort() + ";;" + msg + ";;" + (endTime - t.time);
 					this.st.updateLine(msg);
 					String[] aux = msg.split(";;");
@@ -97,9 +108,8 @@ class ListenUDPAgents implements Runnable {
 					System.out.println("Integrity of packet not verified");
 				}
 			}
-            catch (IOException e){
-                e.printStackTrace();
-            }
-		}
+		}catch (IOException | NoSuchAlgorithmException e){
+            e.printStackTrace();
+        }
 	}
 }
