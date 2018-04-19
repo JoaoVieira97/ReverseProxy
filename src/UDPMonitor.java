@@ -5,7 +5,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.PublicKey;
 import java.util.Arrays;
-import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.security.KeyPairGenerator;
 import java.security.KeyPair;
 import java.security.PrivateKey;
@@ -25,28 +25,18 @@ class UDPMonitor{
 	    Timer t = new Timer();
 
 		try (DatagramSocket serverSocket = new DatagramSocket()){
-			
-			KeyPairGenerator keyPairGen=KeyPairGenerator.getInstance("RSA");
-			keyPairGen.initialize(2048);
-			KeyPair keyPair=keyPairGen.generateKeyPair();
-			PublicKey pkey=keyPair.getPublic();
-			byte[] pKeyBytes=pkey.getEncoded();
-			byte[] fullMessage=new byte[msg.length+pKeyBytes.length];
-			System.arraycopy(msg, 0, fullMessage, 0, msg.length);
-			System.arraycopy(pKeyBytes, 0, fullMessage, msg.length, pKeyBytes.length);
-
-			Thread agentUDPResponse = new Thread(new ListenUDPAgents(serverSocket,st,t,keyPair.getPrivate()));
+			Thread agentUDPResponse = new Thread(new ListenUDPAgents(serverSocket,st,t));
 			agentUDPResponse.start();
 
             System.out.println("Sending");
 			while (true){
 				Thread.sleep(3 * 1000);
-				DatagramPacket msgPacket = new DatagramPacket(fullMessage, fullMessage.length, addr, port);
+				DatagramPacket msgPacket = new DatagramPacket(msg, msg.length, addr, port);
 				serverSocket.send(msgPacket);
 				t.time = System.currentTimeMillis();
 			}
 		}
-		catch (IOException|NoSuchAlgorithmException e){
+		catch (IOException e){
 			e.printStackTrace();
 		}
   	}
@@ -63,13 +53,13 @@ class ListenUDPAgents implements Runnable {
     StateTable st;
     Timer t;
     long endTime;
-    PrivateKey pk;
+    byte[] key;
 
-	public ListenUDPAgents(DatagramSocket ss, StateTable st, Timer timer, PrivateKey pk){
+	public ListenUDPAgents(DatagramSocket ss, StateTable st, Timer timer){
 		this.serverSocket = ss;
         this.st = st;
         this.t = timer;
-        this.pk = pk;
+		this.key="abcdfasdgasefdgsdp".getBytes();
 	}
 
     public void run() {
@@ -96,6 +86,7 @@ class ListenUDPAgents implements Runnable {
 
 				msg = Arrays.toString(msgReceived);
                 hmac256.reset();
+				hmac256.init(new SecretKeySpec(this.key, 0, this.key.length, "AES"));
                 hmac256.update(msgReceived);
                 hash = hmac256.doFinal();
 
@@ -108,7 +99,7 @@ class ListenUDPAgents implements Runnable {
 					System.out.println("Integrity of packet not verified");
 				}
 			}
-		}catch (IOException | NoSuchAlgorithmException e){
+		}catch (Exception e){
             e.printStackTrace();
         }
 	}

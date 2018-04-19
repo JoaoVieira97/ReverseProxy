@@ -12,6 +12,7 @@ import org.hyperic.sigar.Mem;
 import org.hyperic.sigar.Cpu;
 
 import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.util.Arrays;
 
 class UDPAgent{
@@ -35,6 +36,7 @@ class UDPAgent{
             byte[] receiveData=new byte[300];
             byte[] response, fullResponse, hash;
             Mac hmac256 = Mac.getInstance("HmacSHA256");
+            byte[] key="abcdfasdgasefdgsdp".getBytes();
             DatagramPacket msgR;
 
             DatagramSocket sendSkt = new DatagramSocket();
@@ -47,8 +49,6 @@ class UDPAgent{
                 receiveSkt.receive(probeRequest);
                 receiveData=probeRequest.getData();
                 msg=new String(receiveData,0,probeRequest.getLength());
-                requestKeyPair=msg.split(";;");
-                PublicKey pkey=KeyFactory.getInstance("RSA").generatePublic(X509EncodedKeySpec(requestKeyPair[1].getBytes())); //get public key from string
                 
                 System.out.println("Recieved: "+msg);
 
@@ -64,6 +64,7 @@ class UDPAgent{
                 resp = cpuPerc + ";;" + memFree;
                 response = resp.getBytes("UTF-8");
                 hmac256.reset();
+                hmac256.init(new SecretKeySpec(key, 0, key.length, "AES"));
                 hmac256.update(response);
                 hash = hmac256.doFinal();
                 
