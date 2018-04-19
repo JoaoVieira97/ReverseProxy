@@ -29,10 +29,8 @@ class UDPAgent{
             Mem mem;
             Cpu cpu;
             String msg, resp;
-            String[] requestKeyPair;
             long memFree;
             float cpuTotalTime, cpuPerc;
-            String aux=";;";
             byte[] receiveData=new byte[300];
             byte[] response, fullResponse, hash;
             Mac hmac256 = Mac.getInstance("HmacSHA256");
