@@ -28,10 +28,8 @@ class UDPAgent{
             Mem mem;
             Cpu cpu;
             String msg, resp;
-            String[] requestKeyPair;
             long memFree;
             float cpuTotalTime, cpuPerc;
-            String aux=";;";
             byte[] receiveData=new byte[300];
             byte[] response, fullResponse, hash;
             Mac hmac256 = Mac.getInstance("HmacSHA256");
@@ -47,8 +45,6 @@ class UDPAgent{
                 receiveSkt.receive(probeRequest);
                 receiveData=probeRequest.getData();
                 msg=new String(receiveData,0,probeRequest.getLength());
-                requestKeyPair=msg.split(";;");
-                PublicKey pkey=KeyFactory.getInstance("RSA").generatePublic(X509EncodedKeySpec(requestKeyPair[1].getBytes())); //get public key from string
                 
                 System.out.println("Recieved: "+msg);
 
