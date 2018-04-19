@@ -65,6 +65,7 @@ class ListenUDPAgents implements Runnable {
     public void run() {
     	try{
 			String msg;
+			int i;
 	        DatagramPacket receivePacket;
 	        Mac hmac256 = Mac.getInstance("HmacSHA256");
 
@@ -82,7 +83,11 @@ class ListenUDPAgents implements Runnable {
                 receiveData=receivePacket.getData();
 
 				System.arraycopy(receiveData,0,hashReceived,0,32);
-				System.arraycopy(receiveData,32,msgReceived,0,receiveData.length-32);
+
+				//remove trailing nulls
+				for(i=0;i<receiveData.length && receiveData[32+i]!=0;i++);
+
+				System.arraycopy(receiveData,32,msgReceived,0,i);
 
 				msg = Arrays.toString(msgReceived);
                 hmac256.reset();
