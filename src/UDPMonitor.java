@@ -33,8 +33,10 @@ class UDPMonitor{
 				Thread.sleep(3 * 1000);
 				DatagramPacket msgPacket = new DatagramPacket(msg, msg.length, addr, port);
 				serverSocket.send(msgPacket);
-				t.time = System.currentTimeMillis();
-			}
+				synchronized(t){
+                    t.update(System.currentTimeMillis());
+			    }   
+            }
 		}
 		catch (IOException e){
 			e.printStackTrace();
@@ -45,6 +47,18 @@ class UDPMonitor{
 
 class Timer{
 	long time;
+    
+    Timer(){
+        this.time=System.currentTimeMillis();
+    }
+
+    void update(long t){
+        this.time = t;
+    }
+
+    long get(){
+        return this.time;
+    }
 }
 
 class ListenUDPAgents implements Runnable {
@@ -52,7 +66,6 @@ class ListenUDPAgents implements Runnable {
 	DatagramSocket serverSocket;
     StateTable st;
     Timer t;
-    long endTime;
     byte[] key;
 
 	public ListenUDPAgents(DatagramSocket ss, StateTable st, Timer timer){
@@ -70,7 +83,9 @@ class ListenUDPAgents implements Runnable {
     	try{
 			String msg;
 			int i;
-	        DatagramPacket receivePacket;
+	        long RTT;
+            String srcIp;
+            DatagramPacket receivePacket;
 	        Mac hmac256 = Mac.getInstance("HmacSHA256");
             SecretKeySpec secretKey = new SecretKeySpec(this.key,"AES");
 
@@ -86,8 +101,10 @@ class ListenUDPAgents implements Runnable {
 
                 receivePacket = new DatagramPacket(receiveData, receiveData.length);
                 serverSocket.receive(receivePacket);
-                endTime = System.currentTimeMillis();
-                String srcIp=receivePacket.getAddress().getHostAddress();
+                synchronized(this.t){
+                    RTT = System.currentTimeMillis() - this.t.get();
+                }
+                srcIp=receivePacket.getAddress().getHostAddress();
                
                 receiveData=receivePacket.getData();
                 
@@ -104,7 +121,7 @@ class ListenUDPAgents implements Runnable {
                 msg = new String(msgReceived);
 
 				if(Arrays.toString(hash).equals(Arrays.toString(hashReceived))){
-					msg = receivePacket.getAddress().getHostAddress() + ";;" + receivePacket.getPort() + ";;" + msg + ";;" + (endTime - t.time);
+					msg = receivePacket.getAddress().getHostAddress() + ";;" + receivePacket.getPort() + ";;" + msg + ";;" + RTT;
 					this.st.updateLine(msg);
 					String[] aux = msg.split(";;");
 					System.out.println("Received message: " + st.getLine(aux[0]));
