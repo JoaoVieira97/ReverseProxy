@@ -62,7 +62,7 @@ class UDPAgent{
                 resp = cpuPerc + ";;" + memFree;
                 response = resp.getBytes("UTF-8");
                 hmac256.reset();
-                hmac256.init(new SecretKeySpec(key, 0, key.length, "AES"));
+                hmac256.init(new SecretKeySpec(key, "AES"));
                 hmac256.update(response);
                 hash = hmac256.doFinal();
                 
