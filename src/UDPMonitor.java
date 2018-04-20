@@ -72,18 +72,23 @@ class ListenUDPAgents implements Runnable {
 			int i;
 	        DatagramPacket receivePacket;
 	        Mac hmac256 = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKey = new SecretKeySpec(this.key,"AES");
 
 			byte[] receiveData = new byte[1024];
 			byte[] hashReceived = new byte[32];
 			byte[] msgReceived = new byte[992];
-			byte[] hash, trimmed;
+			byte[] hash, trimmed; 
 
        		while (true){
+                //clean
+                Arrays.fill(receiveData,(byte)0);
+                Arrays.fill(msgReceived,(byte)0);
+
                 receivePacket = new DatagramPacket(receiveData, receiveData.length);
                 serverSocket.receive(receivePacket);
                 endTime = System.currentTimeMillis();
                 String srcIp=receivePacket.getAddress().getHostAddress();
-                
+               
                 receiveData=receivePacket.getData();
                 
                 System.arraycopy(receiveData,0,hashReceived,0,32);
@@ -92,10 +97,10 @@ class ListenUDPAgents implements Runnable {
                 trimmed = trim(msgReceived);
 
                 hmac256.reset();
-				hmac256.init(new SecretKeySpec(this.key, "AES"));
+				hmac256.init(secretKey);
                 hmac256.update(trimmed);
                 hash = hmac256.doFinal();
-                
+               
                 msg = new String(msgReceived);
 
 				if(Arrays.toString(hash).equals(Arrays.toString(hashReceived))){
@@ -118,7 +123,7 @@ class ListenUDPAgents implements Runnable {
         while (i >= 0 && bytes[i] == 0) i--;
 		
         byte[] ret = new byte[i+1];
-        System.arraycopy(bytes,0,ret,0,i + 1);
+        System.arraycopy(bytes,0,ret,0,i+1);
         
         return ret;
 	}

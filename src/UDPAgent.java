@@ -35,8 +35,9 @@ class UDPAgent{
             byte[] response, fullResponse, hash;
             Mac hmac256 = Mac.getInstance("HmacSHA256");
             byte[] key="abcdfasdgasefdgsdp".getBytes("UTF-8");
+            SecretKeySpec secretKey = new SecretKeySpec(key, "AES");
             DatagramPacket msgR;
-
+            
             DatagramSocket sendSkt = new DatagramSocket();
 
             System.out.println("Recieving at: "+mcGroupIP);
@@ -62,7 +63,7 @@ class UDPAgent{
                 resp = cpuPerc + ";;" + memFree;
                 response = resp.getBytes("UTF-8");
                 hmac256.reset();
-                hmac256.init(new SecretKeySpec(key, "AES"));
+                hmac256.init(secretKey);
                 hmac256.update(response);
                 hash = hmac256.doFinal();
                 
