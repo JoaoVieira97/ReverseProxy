@@ -34,7 +34,7 @@ class UDPAgent{
             byte[] receiveData=new byte[300];
             byte[] response, fullResponse, hash;
             Mac hmac256 = Mac.getInstance("HmacSHA256");
-            byte[] key="abcdfasdgasefdgsdp".getBytes();
+            byte[] key="abcdfasdgasefdgsdp".getBytes("UTF-8");
             DatagramPacket msgR;
 
             DatagramSocket sendSkt = new DatagramSocket();

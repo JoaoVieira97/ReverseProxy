@@ -59,8 +59,12 @@ class ListenUDPAgents implements Runnable {
 		this.serverSocket = ss;
         this.st = st;
         this.t = timer;
-		this.key="abcdfasdgasefdgsdp".getBytes();
-	}
+		try{
+            this.key="abcdfasdgasefdgsdp".getBytes("UTF-8");
+        }catch(Exception e){
+            e.printStackTrace();        
+        }
+    }
 
     public void run() {
     	try{
@@ -81,21 +85,18 @@ class ListenUDPAgents implements Runnable {
                 String srcIp=receivePacket.getAddress().getHostAddress();
                 
                 receiveData=receivePacket.getData();
+                
+                System.arraycopy(receiveData,0,hashReceived,0,32);
+				System.arraycopy(receiveData,32,msgReceived,0,receiveData.length-32);
 
-				System.arraycopy(receiveData,0,hashReceived,0,32);
-
-				//remove trailing nulls
-				for(i=0;i<receiveData.length && receiveData[32+i]!=0;i++);
-
-				System.arraycopy(receiveData,32,msgReceived,0,i);
-
-				msg = Arrays.toString(msgReceived);
                 hmac256.reset();
 				hmac256.init(new SecretKeySpec(this.key, 0, this.key.length, "AES"));
                 hmac256.update(msgReceived);
                 hash = hmac256.doFinal();
+                
+                msg = new String(msgReceived);
 
-				if(hash.equals(hashReceived)){
+				if(Arrays.toString(hash).equals(Arrays.toString(hashReceived))){
 					msg = receivePacket.getAddress().getHostAddress() + ";;" + receivePacket.getPort() + ";;" + msg + ";;" + (endTime - t.time);
 					this.st.updateLine(msg);
 					String[] aux = msg.split(";;");
