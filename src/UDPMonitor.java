@@ -89,9 +89,11 @@ class ListenUDPAgents implements Runnable {
                 System.arraycopy(receiveData,0,hashReceived,0,32);
 				System.arraycopy(receiveData,32,msgReceived,0,receiveData.length-32);
 
+				byte[] trimmed = trim(msgReceived);
+
                 hmac256.reset();
 				hmac256.init(new SecretKeySpec(this.key, 0, this.key.length, "AES"));
-                hmac256.update(msgReceived);
+                hmac256.update(trimmed);
                 hash = hmac256.doFinal();
                 
                 msg = new String(msgReceived);
@@ -108,5 +110,11 @@ class ListenUDPAgents implements Runnable {
 		}catch (Exception e){
             e.printStackTrace();
         }
+	}
+
+	static byte[] trim(byte[] bytes){
+    	int i = bytes.length - 1;
+    	while (i >= 0 && bytes[i] == 0) --i;
+		return Arrays.copyOf(bytes, i + 1);
 	}
 }

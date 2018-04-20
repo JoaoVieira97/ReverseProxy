@@ -65,7 +65,7 @@ class UDPAgent{
                 hmac256.init(new SecretKeySpec(key, 0, key.length, "AES"));
                 hmac256.update(response);
                 hash = hmac256.doFinal();
-                
+
                 fullResponse=new byte[response.length+hash.length];
                 System.arraycopy(hash, 0, fullResponse, 0, hash.length);
                 System.arraycopy(response, 0, fullResponse, hash.length, response.length);
