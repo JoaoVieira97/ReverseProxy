@@ -16,7 +16,7 @@ class UDPMonitor{
 
 	final static int port = 8888;
 	final static String inet_addr = "239.8.8.8";
-	final static byte[] msg = "SIR;;".getBytes();
+	final static byte[] msg = "SIR".getBytes();
     static StateTable st = new StateTable();
 
 	public static void main(String[] args) throws UnknownHostException, InterruptedException {
@@ -27,6 +27,8 @@ class UDPMonitor{
 		try (DatagramSocket serverSocket = new DatagramSocket()){
 			Thread agentUDPResponse = new Thread(new ListenUDPAgents(serverSocket,st,t));
 			agentUDPResponse.start();
+            Thread reverseProxy = new Thread(new ReverseProxy(st));
+            reverseProxy.start();
 
             System.out.println("Sending");
 			while (true){
@@ -122,8 +124,10 @@ class ListenUDPAgents implements Runnable {
 
 				if(Arrays.toString(hash).equals(Arrays.toString(hashReceived))){
 					msg = receivePacket.getAddress().getHostAddress() + ";;" + receivePacket.getPort() + ";;" + msg + ";;" + RTT;
-					this.st.updateLine(msg);
-					String[] aux = msg.split(";;");
+					synchronized(this.st){
+                        this.st.updateLine(msg);
+                    }
+                    String[] aux = msg.split(";;");
 					System.out.println("Received message: " + st.getLine(aux[0]));
 				}else{
 					System.out.println("Integrity of packet not verified");
