@@ -1,8 +1,7 @@
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.io.BufferedReader;
+import java.io.OutputStream;
+import java.io.InputStream;
 
 class ReverseProxy implements Runnable{
     private StateTable st;
@@ -50,13 +49,14 @@ class Connection implements Runnable{
             Thread listenClient = new Thread(new listenFromClient(s,sToServer));
             listenClient.start();
 
-            PrintWriter out = new PrintWriter(this.s.getOutputStream(), true);
-            BufferedReader in = new BufferedReader(new InputStreamReader(sToServer.getInputStream()));
-            String current;
+            OutputStream out = this.s.getOutputStream();
+            InputStream in = sToServer.getInputStream();
+            byte[] current=new byte[1024];
+            int nR;
             
             //Server to Client
-            while((current = in.readLine()) != null){
-                out.println(current); 
+            while((nR=in.read(current,0,1024))!=-1){
+                out.write(current,0,nR); 
             }      
 
         }catch(Exception e){
@@ -67,13 +67,13 @@ class Connection implements Runnable{
 
 class listenFromClient implements Runnable{
     
-    private PrintWriter out;
-    private BufferedReader in;
+    private OutputStream out;
+    private InputStream in;
 
     public listenFromClient(Socket inS, Socket outS){
         try{
-            this.out = new PrintWriter(outS.getOutputStream(), true);
-            this.in = new BufferedReader(new InputStreamReader(inS.getInputStream()));
+            this.out = outS.getOutputStream();
+            this.in = inS.getInputStream();
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -81,12 +81,13 @@ class listenFromClient implements Runnable{
 
     public void run(){
         
-        String current;
+        byte[] current=new byte[1024];
+        int nR;
         
         //Client to Server
         try{
-            while((current = this.in.readLine()) != null){
-                this.out.println(current); 
+            while((nR=this.in.read(current,0,1024)) != -1){
+                this.out.write(current,0,nR); 
             }
         }catch(Exception e){
             e.printStackTrace();
