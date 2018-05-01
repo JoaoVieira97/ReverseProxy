@@ -38,6 +38,7 @@ class Connection implements Runnable{
 
     public void run(){
         String serverIp;
+        long timeS, timeE, time, BW;
 
         synchronized(this.st){
             serverIp = this.st.getServerAlgorithm();
@@ -46,7 +47,7 @@ class Connection implements Runnable{
         try{
             Socket sToServer = new Socket(serverIp,80);
         
-            Thread listenClient = new Thread(new listenFromClient(s,sToServer));
+            Thread listenClient = new Thread(new listenFromClient(s,sToServer,this.st,serverIp));
             listenClient.start();
 
             OutputStream out = this.s.getOutputStream();
@@ -56,7 +57,15 @@ class Connection implements Runnable{
             
             //Server to Client
             while((nR=in.read(current,0,1024))!=-1){
-                out.write(current,0,nR); 
+                timeS = System.currentTimeMillis();
+                out.write(current,0,nR);
+                timeE = System.currentTimeMillis();
+                time = (timeE-timeS)/1000;
+                if(time!=0) BW = (nR/1024) / time;
+                else BW=0;
+                synchronized(this.st){
+                    this.st.updateBW(serverIp,Long.toString(BW));
+                }
             }      
 
         }catch(Exception e){
@@ -69,11 +78,15 @@ class listenFromClient implements Runnable{
     
     private OutputStream out;
     private InputStream in;
+    private StateTable st;
+    private String serverIp;
 
-    public listenFromClient(Socket inS, Socket outS){
+    public listenFromClient(Socket inS, Socket outS,StateTable st, String sIp){
         try{
             this.out = outS.getOutputStream();
             this.in = inS.getInputStream();
+            this.st = st;
+            this.serverIp = sIp;
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -83,11 +96,20 @@ class listenFromClient implements Runnable{
         
         byte[] current=new byte[1024];
         int nR;
-        
+        long timeE, timeS, time, BW;
+
         //Client to Server
         try{
             while((nR=this.in.read(current,0,1024)) != -1){
-                this.out.write(current,0,nR); 
+                timeS = System.currentTimeMillis();
+                this.out.write(current,0,nR);
+                timeE = System.currentTimeMillis();
+                time = (timeE-timeS)/1000;
+                if(time!=0) BW = (nR/1024) / time;
+                else BW=0;
+                synchronized(this.st){
+                    this.st.updateBW(serverIp,Long.toString(BW));
+                }
             }
         }catch(Exception e){
             e.printStackTrace();

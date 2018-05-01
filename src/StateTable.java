@@ -3,7 +3,7 @@ import java.util.ListIterator;
 
 /*
 Table design (each line):
-IP;;Port;;CPU(%);;RAM(free Memory, bytes);;RTT(ms);;BW
+IP;;Port;;CPU(%);;RAM(free Memory, bytes);;RTT(ms);;BW(Kbps)
 */
 class StateTable{
     private ArrayList<String> table;
@@ -57,7 +57,7 @@ class StateTable{
             String l = it.next();
             String[] auxL = l.split(";;");
             if(auxL[0].equals(ip)) {
-                it.set(auxL[0] + ";;" + auxL[1] + ";;" + auxL[2] + ";;" + auxL[3] + auxL[4] + ";;" + bw);
+                it.set(auxL[0] + ";;" + auxL[1] + ";;" + auxL[2] + ";;" + auxL[3] + ";;" + auxL[4] + ";;" + bw);
                 notFound=false;
             }   
         }
