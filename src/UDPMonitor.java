@@ -121,6 +121,7 @@ class ListenUDPAgents implements Runnable {
                 hash = hmac256.doFinal();
                
                 msg = new String(msgReceived);
+                msg = msg.substring(5); //remove SIRR\n
 
 				if(Arrays.toString(hash).equals(Arrays.toString(hashReceived))){
 					msg = receivePacket.getAddress().getHostAddress() + ";;" + receivePacket.getPort() + ";;" + msg + ";;" + RTT;

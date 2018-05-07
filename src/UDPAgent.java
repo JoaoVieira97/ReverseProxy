@@ -60,7 +60,7 @@ class UDPAgent{
                 cpuTotalTime = cpu.getTotal(); 
                 cpuPerc = (cpuTotalTime-cpu.getIdle())/cpuTotalTime;
 
-                resp = cpuPerc + ";;" + memFree;
+                resp = "SIRR\n" + cpuPerc + ";;" + memFree;
                 response = resp.getBytes("UTF-8");
                 hmac256.reset();
                 hmac256.init(secretKey);
