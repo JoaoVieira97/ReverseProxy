@@ -2,18 +2,13 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.MulticastSocket;
 import java.net.InetAddress;
-
-import java.net.URLConnection;
-import java.net.URL;
-import java.io.*;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.util.Arrays;
 
 import org.hyperic.sigar.Sigar;
 import org.hyperic.sigar.Mem;
 import org.hyperic.sigar.Cpu;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.util.Arrays;
 
 class UDPAgent{
 

@@ -47,7 +47,7 @@ class Connection implements Runnable{
         try{
             Socket sToServer = new Socket(serverIp,80);
         
-            Thread listenClient = new Thread(new listenFromClient(s,sToServer,this.st,serverIp));
+            Thread listenClient = new Thread(new ListenFromClient(s,sToServer,this.st,serverIp));
             listenClient.start();
 
             OutputStream out = this.s.getOutputStream();
@@ -74,14 +74,14 @@ class Connection implements Runnable{
     }
 }
 
-class listenFromClient implements Runnable{
+class ListenFromClient implements Runnable{
     
     private OutputStream out;
     private InputStream in;
     private StateTable st;
     private String serverIp;
 
-    public listenFromClient(Socket inS, Socket outS,StateTable st, String sIp){
+    public ListenFromClient(Socket inS, Socket outS,StateTable st, String sIp){
         try{
             this.out = outS.getOutputStream();
             this.in = inS.getInputStream();
