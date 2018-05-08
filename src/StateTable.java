@@ -7,9 +7,13 @@ IP;;Port;;CPU(%);;RAM(free Memory, bytes);;RTT(ms);;BW(Kbps)
 */
 class StateTable{
     private ArrayList<String> table;
+    private double maxRAM;
+    private double maxBW;
     
     StateTable(){
         this.table=new ArrayList<String>();
+        this.maxRAM = 0;
+        this.maxBW = 0;
     }
 
     void insertLine(String s){
@@ -21,6 +25,7 @@ class StateTable{
         boolean notFound=true;
         String[] aux = s.split(";;");
         String ip = aux[0];
+        double ram = Double.parseDouble(aux[3]);
 
         while(it.hasNext() && notFound){
             String l = it.next();
@@ -31,6 +36,7 @@ class StateTable{
             }   
         }
         if(notFound) this.table.add(s + ";;0");
+        if (ram > maxRAM) maxRAM = ram;
     }
 
     String getLine(String ip){
@@ -52,12 +58,14 @@ class StateTable{
     void updateBW(String ip, String bw){
        ListIterator<String> it = this.table.listIterator();
        boolean notFound=true;
+       double bwValue = Double.parseDouble(bw); 
 
        while(it.hasNext() && notFound){
             String l = it.next();
             String[] auxL = l.split(";;");
             if(auxL[0].equals(ip)) {
                 it.set(auxL[0] + ";;" + auxL[1] + ";;" + auxL[2] + ";;" + auxL[3] + ";;" + auxL[4] + ";;" + bw);
+                if (bwValue > maxBW) maxBW = bwValue;
                 notFound=false;
             }   
         }
@@ -73,7 +81,7 @@ class StateTable{
         for(int i=0; i<size; i++){
             line = this.table.get(i);
             String[] aux = line.split(";;");
-            values[i] = 0.25*Double.parseDouble(aux[2]) - 0.25*Double.parseDouble(aux[3]) + 0.25*Double.parseDouble(aux[4]) + 0.25*Double.parseDouble(aux[5]);
+            values[i] = 0.25*Double.parseDouble(aux[2]) - 0.25*Double.parseDouble(aux[3])/maxRAM + 0.25*Double.parseDouble(aux[4])/3000 + 0.25*Double.parseDouble(aux[5])/maxBW;
         }
         
         for(int i=0; i<size; i++){
