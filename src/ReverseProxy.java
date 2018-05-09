@@ -38,8 +38,8 @@ class Connection implements Runnable{
 
     public void run(){
         String serverIp;
-        long timeS, timeE, time; 
-        double BW;
+        long timeS, timeE;
+        double BW, time;
 
         synchronized(this.st){
             serverIp = this.st.getServerAlgorithm();
@@ -61,8 +61,12 @@ class Connection implements Runnable{
                 timeS = System.currentTimeMillis();
                 out.write(current,0,nR);
                 timeE = System.currentTimeMillis();
-                time = (timeE-timeS)/1000;
-                if(time!=0) BW = (nR/1024) / time;
+                time = (double)(timeE-timeS)/1000;
+                System.out.println("Debugging Time:"+time);
+                if(time!=0.f){
+                    BW = ((double)nR/1024) /time;
+                    System.out.println("Debugging\nTime:"+time+"s\nBandwidth:"+BW);
+                } 
                 else BW=0;
                 synchronized(this.st){
                     this.st.updateBW(serverIp,Double.toString(BW));
