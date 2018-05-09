@@ -8,14 +8,12 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.Mac;
 
 class UDPMonitor{
-
 	final static int port = 8888;
 	final static String inet_addr = "239.8.8.8";
 	final static byte[] msg = "SIR".getBytes();
     static StateTable st = new StateTable();
 
 	public static void main(String[] args) throws UnknownHostException, InterruptedException {
-
 	    InetAddress addr = InetAddress.getByName(inet_addr);
 	    Timer t = new Timer();
 

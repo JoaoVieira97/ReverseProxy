@@ -38,7 +38,8 @@ class Connection implements Runnable{
 
     public void run(){
         String serverIp;
-        long timeS, timeE, time, BW;
+        long timeS, timeE, time; 
+        double BW;
 
         synchronized(this.st){
             serverIp = this.st.getServerAlgorithm();
@@ -64,7 +65,7 @@ class Connection implements Runnable{
                 if(time!=0) BW = (nR/1024) / time;
                 else BW=0;
                 synchronized(this.st){
-                    this.st.updateBW(serverIp,Long.toString(BW));
+                    this.st.updateBW(serverIp,Double.toString(BW));
                 }
             }      
 
