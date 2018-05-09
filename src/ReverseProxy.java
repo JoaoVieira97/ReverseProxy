@@ -39,7 +39,8 @@ class Connection implements Runnable{
     public void run(){
         String serverIp;
         long timeS, timeE;
-        double BW, time;
+        double BW=0, time, prevBW=0;
+        int calcCicle=0;
 
         synchronized(this.st){
             serverIp = this.st.getServerAlgorithm();
@@ -56,23 +57,50 @@ class Connection implements Runnable{
             byte[] current=new byte[1024];
             int nR;
             
+            timeS = System.currentTimeMillis();
             //Server to Client
             while((nR=in.read(current,0,1024))!=-1){
-                timeS = System.currentTimeMillis();
                 out.write(current,0,nR);
+                calcCicle++;
+                if(calcCicle==3){
+                    timeE = System.currentTimeMillis();
+                    time = (double)(timeE-timeS)/1000;
+                    if(time!=0.f){
+                        prevBW=BW;
+                        BW = ((double)3*nR/1024) /time;
+                    } 
+                    else{
+                        prevBW=BW;
+                        BW=0;
+                    }
+                    calcCicle=0;
+                    timeS = System.currentTimeMillis();
+                }
+                synchronized(this.st){
+                    this.st.updateBW(serverIp,BW-prevBW);
+                }
+            }
+            
+            //case end with only 1 or 2 cicles
+            if(calcCicle!=0){
                 timeE = System.currentTimeMillis();
                 time = (double)(timeE-timeS)/1000;
-                System.out.println("Debugging Time:"+time);
                 if(time!=0.f){
-                    BW = ((double)nR/1024) /time;
-                    System.out.println("Debugging\nTime:"+time+"s\nBandwidth:"+BW);
+                    prevBW=BW;
+                    BW = ((double)calcCicle*nR/1024) /time;
                 } 
-                else BW=0;
-                synchronized(this.st){
-                    this.st.updateBW(serverIp,Double.toString(BW));
+                else{
+                    prevBW=BW;
+                    BW=0;
                 }
-            }      
+                synchronized(this.st){
+                    this.st.updateBW(serverIp,BW-prevBW);
+                }
+            }
 
+            synchronized(this.st){
+                this.st.updateBW(serverIp,-BW);
+            }
         }catch(Exception e){
             e.printStackTrace();
         }   
@@ -101,21 +129,55 @@ class ListenFromClient implements Runnable{
         
         byte[] current=new byte[1024];
         int nR;
-        long timeE, timeS, time, BW;
+        long timeE, timeS;
+        double time, BW=0, prevBW=0;
+        int calcCicle=0;
 
         //Client to Server
         try{
+            timeS = System.currentTimeMillis();
             while((nR=this.in.read(current,0,1024)) != -1){
-                timeS = System.currentTimeMillis();
                 this.out.write(current,0,nR);
-                timeE = System.currentTimeMillis();
-                time = (timeE-timeS)/1000;
-                if(time!=0) BW = (nR/1024) / time;
-                else BW=0;
+                calcCicle++;
+                if(calcCicle==3){
+                    timeE = System.currentTimeMillis();
+                    time = (double)(timeE-timeS)/1000;
+                    if(time!=0.f){
+                        prevBW=BW;
+                        BW = ((double)3*nR/1024) /time;
+                    } 
+                    else{
+                        prevBW=BW;
+                        BW=0;
+                    }
+                    calcCicle=0;
+                    timeS = System.currentTimeMillis();
+                }
                 synchronized(this.st){
-                    this.st.updateBW(serverIp,Long.toString(BW));
+                    this.st.updateBW(serverIp,BW-prevBW);
+                }                
+            }
+           
+            //case end with only 1 or 2 cicles
+            if(calcCicle!=0){
+                timeE = System.currentTimeMillis();
+                time = (double)(timeE-timeS)/1000;
+                if(time!=0.f){
+                    prevBW=BW;
+                    BW = ((double)calcCicle*nR/1024) /time;
+                } 
+                else{
+                    prevBW=BW;
+                    BW=0;
+                }
+                synchronized(this.st){
+                    this.st.updateBW(serverIp,BW-prevBW);
                 }
             }
+
+            synchronized(this.st){
+                this.st.updateBW(serverIp,-BW);
+            } 
         }catch(Exception e){
             e.printStackTrace();
         }

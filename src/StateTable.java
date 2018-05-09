@@ -55,17 +55,18 @@ class StateTable{
         return false;
     }
 
-    void updateBW(String ip, String bw){
+    void updateBW(String ip, double bw){
        ListIterator<String> it = this.table.listIterator();
        boolean notFound=true;
-       double bwValue = Double.parseDouble(bw); 
+       double auxBW; 
 
        while(it.hasNext() && notFound){
             String l = it.next();
             String[] auxL = l.split(";;");
             if(auxL[0].equals(ip)) {
-                it.set(auxL[0] + ";;" + auxL[1] + ";;" + auxL[2] + ";;" + auxL[3] + ";;" + auxL[4] + ";;" + bw);
-                if (bwValue > maxBW) maxBW = bwValue;
+                auxBW = bw + Double.parseDouble(auxL[5]); 
+                it.set(auxL[0] + ";;" + auxL[1] + ";;" + auxL[2] + ";;" + auxL[3] + ";;" + auxL[4] + ";;" + Double.toString(auxBW));
+                if (bw > maxBW) maxBW = bw;
                 notFound=false;
             }   
         }
