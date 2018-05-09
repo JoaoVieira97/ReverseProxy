@@ -62,26 +62,26 @@ class Connection implements Runnable{
             while((nR=in.read(current,0,1024))!=-1){
                 out.write(current,0,nR);
                 calcCicle++;
-                if(calcCicle==3){
+                if(calcCicle==20){
                     timeE = System.currentTimeMillis();
                     time = (double)(timeE-timeS)/1000;
                     if(time!=0.f){
                         prevBW=BW;
-                        BW = ((double)3*nR/1024) /time;
+                        BW = ((double)20*nR/1024) /time;
                     } 
                     else{
                         prevBW=BW;
                         BW=0;
                     }
                     calcCicle=0;
+                    synchronized(this.st){
+                        this.st.updateBW(serverIp,BW-prevBW);
+                    }
                     timeS = System.currentTimeMillis();
-                }
-                synchronized(this.st){
-                    this.st.updateBW(serverIp,BW-prevBW);
-                }
+                }   
             }
             
-            //case end with only 1 or 2 cicles
+            //case end with 1 a 19 cicles
             if(calcCicle!=0){
                 timeE = System.currentTimeMillis();
                 time = (double)(timeE-timeS)/1000;
@@ -139,26 +139,26 @@ class ListenFromClient implements Runnable{
             while((nR=this.in.read(current,0,1024)) != -1){
                 this.out.write(current,0,nR);
                 calcCicle++;
-                if(calcCicle==3){
+                if(calcCicle==20){
                     timeE = System.currentTimeMillis();
                     time = (double)(timeE-timeS)/1000;
                     if(time!=0.f){
                         prevBW=BW;
-                        BW = ((double)3*nR/1024) /time;
+                        BW = ((double)20*nR/1024) /time;
                     } 
                     else{
                         prevBW=BW;
                         BW=0;
                     }
                     calcCicle=0;
+                    synchronized(this.st){
+                        this.st.updateBW(serverIp,BW-prevBW);
+                    }
                     timeS = System.currentTimeMillis();
-                }
-                synchronized(this.st){
-                    this.st.updateBW(serverIp,BW-prevBW);
-                }                
+                }   
             }
            
-            //case end with only 1 or 2 cicles
+            //case end with 1 a 19 cicles
             if(calcCicle!=0){
                 timeE = System.currentTimeMillis();
                 time = (double)(timeE-timeS)/1000;
