@@ -55,25 +55,27 @@ class Connection implements Runnable{
             OutputStream out = this.s.getOutputStream();
             InputStream in = sToServer.getInputStream();
             byte[] current=new byte[1024];
-            int nR;
+            int nR, nRT=0;
             
             timeS = System.currentTimeMillis();
             //Server to Client
             while((nR=in.read(current,0,1024))!=-1){
                 out.write(current,0,nR);
                 calcCicle++;
+                nRT+=nR;
                 if(calcCicle==20){
                     timeE = System.currentTimeMillis();
                     time = (double)(timeE-timeS)/1000;
                     if(time!=0.f){
                         prevBW=BW;
-                        BW = ((double)20*nR/1024) /time;
+                        BW = ((double)nRT/1024) /time;
                     } 
                     else{
                         prevBW=BW;
                         BW=0;
                     }
                     calcCicle=0;
+                    nRT=0;
                     synchronized(this.st){
                         this.st.updateBW(serverIp,BW-prevBW);
                     }
@@ -87,7 +89,7 @@ class Connection implements Runnable{
                 time = (double)(timeE-timeS)/1000;
                 if(time!=0.f){
                     prevBW=BW;
-                    BW = ((double)calcCicle*nR/1024) /time;
+                    BW = ((double)nRT/1024) /time;
                 } 
                 else{
                     prevBW=BW;
@@ -128,7 +130,7 @@ class ListenFromClient implements Runnable{
     public void run(){
         
         byte[] current=new byte[1024];
-        int nR;
+        int nR, nRT=0;
         long timeE, timeS;
         double time, BW=0, prevBW=0;
         int calcCicle=0;
@@ -139,18 +141,20 @@ class ListenFromClient implements Runnable{
             while((nR=this.in.read(current,0,1024)) != -1){
                 this.out.write(current,0,nR);
                 calcCicle++;
+                nRT+=nR;
                 if(calcCicle==20){
                     timeE = System.currentTimeMillis();
                     time = (double)(timeE-timeS)/1000;
                     if(time!=0.f){
                         prevBW=BW;
-                        BW = ((double)20*nR/1024) /time;
+                        BW = ((double)nRT/1024) /time;
                     } 
                     else{
                         prevBW=BW;
                         BW=0;
                     }
                     calcCicle=0;
+                    nRT=0;
                     synchronized(this.st){
                         this.st.updateBW(serverIp,BW-prevBW);
                     }
@@ -164,7 +168,7 @@ class ListenFromClient implements Runnable{
                 time = (double)(timeE-timeS)/1000;
                 if(time!=0.f){
                     prevBW=BW;
-                    BW = ((double)calcCicle*nR/1024) /time;
+                    BW = ((double)nRT/1024) /time;
                 } 
                 else{
                     prevBW=BW;
