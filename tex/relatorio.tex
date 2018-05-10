@@ -118,14 +118,13 @@ sendo depois escolhido o servidor com o menor valor. O valor da memória livre �
 Para garantir a autenticidade e a integridade nas mensagens trocadas entre o UDPMonitor e o UDPAgent decidimos implementar uma chave/password conhecida tanto pelo Monitor como pelos Agent's, esta password foi decidida por nós e tem o valor de "\texttt{abcdfasdgasefdgsdp}". A partir daqui e supondo que \texttt{msg} é o conteúdo que é necessário ser enviado do Agent para o Monitor, acrescentamos no início desta mesma mensagem uma \texttt{hash} produzida tendo em conta a key apresentada em cima. Desta forma, o pacote enviado pelo UDPAgent ao UDPMonitor é "\texttt{hash} (32 bytes) + \texttt{msg}". De seguida, quando este mesmo pacote é recebido pelo Monitor, este extrái o mesmo para um conjunto de bytes, e separa a \texttt{hash} da \texttt{msg}. Após, isto, calcula uma nova \texttt{hash} da \texttt{msg} tendo em conta a key que tanto este como os Agent's conhecem, se tudo correr como planeado, o valor desta \texttt{hash} calculada é igual ao valor da \texttt{hash} recebida.
 Desta forma e através deste algoritmo conseguimos garantir simultaneamente a autenticidade e a integridade das mensagens que são trocadas entre o UDPMonitor e os UDPAgent's. Fica assim explicitado o HMAC.
 
-{\color{red}
 Em relação ao cálculo da bandwidth, o mesmo apresentou algumas dificuldades, contudo obteve-se o resultado pretendido adicionando o bandwidth (BW) atual da ligação seja entre cliente-ReverseProxy seja entre servidor HTTP-ReverseProxy à existente na tabela de estados a cada conjunto de 1024 bytes. Porém esta abordagem apresentava um problema, visto que, a bandwidth iria aumentar indefinidamente, algo não real. Como forma a resolver este problema, é guardado valor da bandwidth anterior (prevBW) e, na altura da adição, em vez de se adicionar BW adiciona-se (BW-prevBW) resolvendo assim o problema do aumento indefinido. Para além disso, de modo a que quando uma determinada ligação caia esta nao mantenha o valor da bandwidth na tabela (visto a mesma já nao influenciar), o que se faz é subtrair -BW ao valor existente na tabela de estados. Apesar de tudo, a nossa abordagem ainda apresentava um problema, visto que a maior parte das vezes a bandwidth era igual a 0 e isso devia-se ao pequeno intervalo de tempo e pequeno número de bytes em que era calculado a bandwidth. Sendo assim, em vez de ser a cada ciclo de 1024 bytes é calculado de 20 em 20 ciclos de 1024 bytes. É importante referir que a fórmula usada para calcular a bandwidth é a seguinte:
 \begin{verbatim}
 time (em s) = (timeInicio (em ms) - timeFim (em ms)) / 1000
 BW (em Kbps) = (nRT (número de bytes lidos)/1024) / time
 \end{verbatim}
 Por fim, caso numa determinada ligação o número de ciclos seja menor que 20 ou não seja multiplo de 20 o que é feito é o mesmo, ou seja é aplicado a fórmula que se apresenta acima.
-}
+\newline
 
 {\color{red}TODO: detalhes, parâmetros, bibliotecas de funções, etc.}
 
