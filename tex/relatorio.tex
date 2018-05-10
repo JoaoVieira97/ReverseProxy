@@ -20,29 +20,29 @@
 \maketitle
 
 \begin{abstract}
-Após a implementação de um serviço de distribuição de carga com servidor proxy, procedemos à documentação do mesmo, de modo a ser perceptível o que foi desenvolvido. É apresentada a arquitetura da solução bem como os formatos dos pacotes. É de seguida explicada a implementação para por fim apresentar os testes e os resultados obtidos.
+Após a implementação de um serviço de distribuição de carga com servidor proxy, procedemos à documentação do mesmo, de modo a ser perceptível o que foi desenvolvido. Inicialmente é apresentada a arquitetura da solução proposta bem como os formatos dos pacotes sendo, de seguida, explicada a implementação e apresentados os testes e os resultados obtidos.
 \end{abstract}
 
 \section{Introdução}
 O trabalho desenvolvido tem como objetivo a implementação de um serviço de distribuição de carga com servidor proxy invertido usado quando há a necessidade de mais do que um servidor a atender vários clientes devido ao grande volume dos mesmos e pretende-se manter um único endereço IP público.
 
 \section{Arquitetura da solução}
-Pretende-se implementar um serviço de balanceamento de carga com servidor proxy invertido, no qual existe um servidor com um endereço IP público que atende todos os clientes, desviando-os para um dos servidores HTTP de back-end disponíveis. 
-Este servidor é chamado de Reverse Proxy. Uma coisa que é importante referir é que no nosso trabalho as conexões dos clientes não sao desviadas mas é sim criado um ``tunel'' no Reverse Proxy entre o servidor HTTP de back-end escolhido e o cliente, de modo a simplificar a implementação, contudo, isto cria um ponto de falha grave no Reverse Proxy.
-Este Reverse Proxy pode ser dividido em 3 partes: MonitorUDP, tabela de estado e o ``Reverse Proxy''. 
+Pretende-se implementar um serviço de distribuição de carga com servidor proxy invertido, no qual existe um servidor com um endereço IP público(o reverse proxy) que atende todos os clientes, direccionando-os para um dos servidores HTTP de back-end disponíveis. 
+É importante referir é que no nosso trabalho as conexões dos clientes não são desviadas sendo criado um ``túnel'' no Reverse Proxy entre o servidor HTTP de back-end escolhido e o cliente. Esta decisão foi tomada devido à menor complexidade envolvida na sua implementação representando, no entanto, um ponto de falha grave no Reverse Proxy.
+O sistema desenvolvido pode ser dividido em 3 componentes princpais: MonitorUDP, tabela de estado e o ``Reverse Proxy''. 
 
-O MonitorUDP envia em Multicast um datagrama UDP de 3 em 3 segundos para todos os agenteUDP's (um por cada servidor HTTP back-end) de modo a que cada agenteUDP responda em Unicast com o estado do servidor. O MonitorUDP ao receber um datagrama UDP de um dos agenteUDP's calcula o RTT(Round Trip Time), obtém o IP de origem e porta de origem do datagrama e com toda esta informação atualiza a tabela de estado referente ao servidor HTTP back-end do qual foi recebido o datagrama.
+O MonitorUDP envia, em Multicast, um datagrama UDP de 3 em 3 segundos para todos os agenteUDP's (um por cada servidor HTTP back-end) estes respondem depois, em Unicast, com informação relativa ao estado do servidor a que se encontram assocaidos. O MonitorUDP, ao receber um datagrama UDP de um dos agenteUDP's, calcula o RTT(Round Trip Time), obtém o IP e porta de origem do datagrama e atualiza a tabela de estado referente ao servidor HTTP back-end do qual foi recebido o datagrama.
 
-A tabela de estado possui em cada linha informação referente a um servidor HTTP back-end, sendo que em cada linha a informação presente é organizada da seguinte maneira:
+A tabela de estado possui, em cada linha, informação referente a um único servidor HTTP back-end, sendo que esta informação é organizada da seguinte maneira:
 
 \begin{verbatim}
 IP;;Porta;;CPU_usado;;RAM_livre;;RTT;;BW(bandwidth)
 \end{verbatim}
-em que o 3º parâmetro (CPU\_usado) é uma percentagem, a RAM\_livre é um tamanho em bytes, o RTT representa um tempo em milisegundos, e a BW (bandwidth) é um tamanho em Kbytes por segundo (Kbps).
+em que o 3º parâmetro (CPU\_usado) é uma percentagem, a RAM\_livre corresponde a quantidade de memória em bytes, o RTT representa um intervalo de tempo em milisegundos, e a BW (bandwidth) é um tamanho em Kbytes por segundo (Kbps).
 
-Quanto ao ``Reverse Proxy'', quando recebe a conexão de um cliente tem que escolher da tabela de estado um servidor HTTP (usando um algoritmo definido por nós), criar uma ligação TCP entre o mesmo e o cliente e ficar encarregue de ir atualizando na tabela de estado o valor da bandwidth.
+Quanto ao ``Reverse Proxy'' quando este recebe um pedido de conexão de um cliente, tem que escolher, com recurso a um algoritmo pré-estabelecido,  um servidor HTTP (da tabela de estado anteriormente referida), criar uma ligação TCP entre o mesmo(servidor HTTP) e o cliente e atualizar, periodicamente, o valor da bandwidth para esse servidor.
 
-Esta arquitetura encontra-se ilustrada na seguinte figura:
+A arquitetura descrita encontra-se ilustrada na seguinte figura:
 \begin{figure}[H]
 	\centering
 	\includegraphics[height=6cm]{arquitetura.png}
@@ -51,31 +51,30 @@ Esta arquitetura encontra-se ilustrada na seguinte figura:
 \section{Especificação do protocolo UDP}
 
 \subsection{Formato das mensagens protocolares (PDU)}
-Existem dois tipos de mensagens realizadas entre os UDPAgent's e o UDPMonitor, a mensagem enviada pelo UDPMonitor em Multicast para todos os UDPAgent's, e a mensagem de cada UDPAgent quando recebe a mensagem do UDPMonitor para o mesmo em Unicast.
+As mensagens trocadas entre os UDPAgent's e o UDPMonitor são de dois tipos: 
+\begin{itemize}
+    \item mensagens enviadas pelo UDPMonitor, em Multicast, para todos os UDPAgent's
+    \item mensagens de cada UDPAgent, quando recebe a mensagem do UDPMonitor, para o mesmo em Unicast
+\end{itemize}
 
-Quanto à mensagem em Multicast, o formato é simples visto ser apenas necessário informar que a mensagem recebida foi enviada pelo UDPMonitor, como tal a mensagem enviada é apenas ``SIR''.
-Já a mensagem em Unicast, tem de possuir toda a informação a enviar desde o servidor (UDPAgent) para o UDPMonitor e como tal o formato da mensagem é a seguinte:
+A mensagem enviada do UDPMonitor para todos os membros do grupo Multicast tem o intuito de pedir informação referente ao estados dos servidores HTTP e, como tal, possui um formato simples sendo o seu conteúdo a seguinte \texttt{String}: ``SIR''.
+Já a mensagem unicast, de cada UDPAgent para o UDPMonitor em resposta à mensagem anteriormente descrita contém toda informação referente ao estado de um dado serivdor HTTP e, como tal, apresenta o seguinte formato:
 \begin{verbatim}
 SIRR
 percentagem_de_uso_do_CPU;;memoria_RAM_livre
 \end{verbatim}
-Convém referir que os dois ;'s (pontos e vírgulas) são usados de modo a separar corretamente os diferentes dados e que SIRR tem como significado ``System/Server Information Request Response''. 
+De notar que a \texttt{String} ``;;'' é usada como separador dos diferentes campos que constituem a mensagem. 
 
 \subsection{Interações}
-{\color{red}
-Sendo assim, são estabelecidas várias interações entre os intervenientes deste \textit{Reverse Proxy}, nomeadamente entre:
-\begin{itemize}
-\item \textbf{UDPAgent e UDPMonitor}\\
-O UDPMonitor envia em \textit{multicast} para todos os UDPAgent's no grupo a mensagem "SIR", estes respondem à mesma em \textit{unicast} com os valores do servidor em que estão a correr, de forma a poder ser atualizada a sua informação na Tabela de Estados do programa. É importante referir que a autenticidade e integridade das mensagens trocadas entre estes dois intervenientes é garantida.
-\item \textbf{UDPMonitor e StateTable}\\
-Sempre que o UDPMonitor recebe informações dos servidores através dos UDPAgent's cabe-lhe a função de atualizar os valores destes servidores na Tabela de Estados caso estes já sejam pertencentes ou grupo, ou simplesmente adicionar um novo servidor com a sua respetiva informação 
+Como é possível observar são estabelecidas várias interações entre os intervenientes do sistema desenvolvido, nomeadamente entre:
+\begin{description}
+    \item [UDPAgent e UDPMonitor] O UDPMonitor envia, em \textit{multicast}, para todos os UDPAgent's no grupo a mensagem "SIR", estes respondem à mesma em \textit{unicast} com os valores do servidor em que estão a correr, de forma a poder ser atualizada a sua informação na Tabela de Estados do programa. É importante referir que a autenticidade e integridade das mensagens trocadas entre estes dois intervenientes é garantida.
+    \item [UDPMonitor e StateTable] Sempre que o UDPMonitor recebe informações dos servidores através dos UDPAgent's cabe-lhe a função de atualizar os valores destes servidores na Tabela de Estados caso estes já sejam pertencentes ou grupo, ou simplesmente adicionar um novo servidor com a sua respetiva informação 
 à tabela em causa.
-\item \textbf{Cliente e ReverseProxy}\\
-Quando um cliente requisita uma consulta ao ReverseProxy este escolhe o melhor servidor no devido momento tendo em conta os valores dos mesmos na Tabela de Estados (cálculo através do algoritmo) e cria um "túnel" entre esse mesmo servidor e o cliente de forma a estabelecer a conexão necessária.
-\item \textbf{ReverseProxy e StateTable}\\
-Cabe ao ReverseProxy calcular a \textit{bandwidth} sempre que um cliente faça um \textit{download} através de um dos servidores disponíveis. Com isto, cabe ao ReverseProxy atualizar o valor da \textit{bandwidth} desse mesmo servidor na Tabela de Estados tendo em conta o valor calculado.
-\end{itemize}
-}
+    \item [Cliente e ReverseProxy] Quando um cliente requisita uma consulta ao ReverseProxy este escolhe o melhor servidor no devido momento tendo em conta os valores dos mesmos na Tabela de Estados (cálculo através do algoritmo) e cria um "túnel" entre esse mesmo servidor e o cliente de forma a estabelecer a conexão necessária.
+    \item [ReverseProxy e StateTable] Cabe ao ReverseProxy calcular a \textit{bandwidth} sempre que um cliente faça um \textit{download} através de um dos servidores disponíveis. Com isto, cabe ao ReverseProxy atualizar o valor da \textit{bandwidth} desse mesmo servidor na Tabela de Estados tendo em conta o valor calculado.
+\end{description}
+
 
 \section{Implementação}
 O trabalho foi desenvolvido em Java e como tal decidimos dividir o código pelas seguintes classes:
@@ -131,7 +130,7 @@ Por fim, caso numa determinada ligação o número de ciclos seja menor que 20 o
 {\color{red}TODO: detalhes, parâmetros, bibliotecas de funções, etc.}
 
 \section{Testes e resultados}
-De modo a testar o que foi desenvolvido foi usado o Core (Common Open Research Emulator), um emulador de redes numa máquina, sendo que o mesmo foi usado na máquina virtual fornecida pelos docentes. A topologia usada consistiu no seguinte:
+De modo a testar o que foi desenvolvido foi usado o \textbf{CORE}, um emulador de redes numa máquina, sendo que o mesmo foi usado na máquina virtual fornecida pelos docentes. A topologia usada consistiu no seguinte:
 \begin{figure}[H]
 	\centering
 	\includegraphics[height=6cm]{topologia.png}
@@ -173,6 +172,20 @@ ao servidor Reverse Proxy (endereço IP: 10.0.0.13). Depois basta verificar se o
 
 \section{Conclusões e trabalho futuro}
 Apesar de o trabalho cumprir os requisitos propostos poderia ainda ser melhorado, no sentido em que em vez do Reverse Proxy realizar a ligação entre o servidor back-end e o cliente, seria em alternativa enviado ao cliente o endereço do servidor back-end de modo ao mesmo ligar-se a ele, deixando assim dos dados passarem pelo Reverse Proxy, e evitando que se estabeleça aqui um ponto de falha.
+
+\section{Lista de Siglas e Acrónimos}
+\begin{description}
+    \item [TCP] Transmission Control Protocol
+    \item [UDP] User Datagram Protocol
+    \item [HTTP] Hypertext Transfer Protocol
+    \item [PDU] Protocol Data Unit
+    \item [SIR] Server Information Request
+    \item [SIRR] Server Information Request Response
+    \item [PDU] Protocol Data Unit
+    \item [HMAC] Hash-Based Message Authentication Code
+    \item [RTT] Round Trip Time
+    \item [CORE] Common Open Research Emulator
+\end{description}
 
 \section{Referências}
 Imagem na secção Arquitetura da Solução: Enunciado do Trabalho\\
