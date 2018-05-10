@@ -4,6 +4,7 @@
 
 ## Others
 **/*.swp
+**/*.pdf
 
 ## Latex
 **/*.aux
