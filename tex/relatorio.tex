@@ -82,26 +82,26 @@ O trabalho foi desenvolvido utilizando a linguangem de programação Java e, com
     \item [StateTable] Representa a tabela de estados
     \item [UDPMonitor] Envia datagramas UDP de 3 em 3 segundos para o canal multicast 
     \item [UDPAgent] Responde em unicast ao MonitorUDP com o estado do servidor HTTP a que está associado
-    \item [ListenUDPAgents (Thread do UDPMonitor)] Recolhe os datagramas enviados pelos UDPAgent's e atualiza com estes diagramas a tabela de estados (StateTable)
+    \item [ListenUDPAgents (Thread do UDPMonitor)] Recolhe os datagramas enviados pelos UDPAgent's e atualiza com estes datagramas a tabela de estados (StateTable)
     \item [Timer] Usado pelo UDPMonitor e pelo ListenUDPAgents de modo a calcular o RTT das ligações com os servidores
     \item [ReverseProxy] O Reverse Proxy funciona como um servidor TCP recebendo pedidos na porta 80 dos clientes
     \item [Connection (Thread do ReverseProxy)] criada para tratar de cada cliente, ou seja cada cliente possui uma Thread Connection no ReverseProxy sendo que esta Thread trata de escolher o servidor HTTP da tabela de estados, inicia a Thread ListenFromClient e fica à escuta do servidor HTTP e envia os dados para o cliente
     \item [ListenFromClient (Thread da Connection)] Envia os dados que recebe do cliente para o servidor HTTP
 \end{description}
 
-Tanto a classe Timer bem como a StateTable foram implementadas tendo em mente o controlo de acesso concorrentes nomeandamente com recurso a lock's de modo a impedir que Threads/Processos diferentes tenham acesso simultaneo aos dados, evitando assim race conditions como dead lock's inconsistências nos dados.
+Tanto a classe Timer bem como a StateTable foram implementadas tendo em mente o controlo de acesso concorrentes nomeadamente com recurso a lock's de modo a impedir que Threads/Processos diferentes tenham acesso simultâneo aos dados, evitando assim race conditions como dead lock's e inconsistências nos dados.
 
-A biblioteca Sigar, da Hyperic, permite-nos obter dados como a percentagem de uso de CPU e de memória livre do sistema(com UDPAgent e servidor HTTP) e não apenas o que a máquina virtual do Java(JVM) disponibilizou para a execução do UDPAgent. De realçar que esta biblioteca é cross-platform \textbf{i.e.} funciona em vários sistemas operativos. Contudo é importante salientar que, dado os testes efetuados serem realizados na máquina, os dados obtidos pelos vários UDPAgent's é o mesmo. Desta biblioteca foram usado as seguintes funcionalidades:
+A biblioteca Sigar, da Hyperic, permite-nos obter dados como a percentagem de uso de CPU e de memória livre do sistema(com UDPAgent e servidor HTTP) e não apenas o que a máquina virtual do Java(JVM) disponibilizou para a execução do UDPAgent. De realçar que esta biblioteca é cross-platform \textbf{i.e.} funciona em vários sistemas operativos. Contudo é importante salientar que, dado os testes efetuados serem realizados na mesma máquina, os dados obtidos pelos vários UDPAgent's é o mesmo. Desta biblioteca foram usado as seguintes funcionalidades:
 \begin{itemize}
 	\item org.hyperic.sigar.Sigar: necessário de modo a poder usar as funcionalidades seguintes
 	\item org.hyperic.sigar.Mem: permite a obtenção de dados referentes à memória RAM
 	\item org.hyperic.sigar.Cpu: permite a obtenção de dados referentes ao CPU
 \end{itemize}
-Já em relação às bibliotecas predefinidas do Java destacam-se as que permitem a conexão entre os diferentes componentes, tanto por TCP como por UDP, e as que nos permite garantir a integridade bem como autenticação dos pacote:
+Já em relação às bibliotecas predefinidas do Java destacam-se as que permitem a conexão entre os diferentes componentes, tanto por TCP como por UDP, e as que nos permite garantir a integridade bem como autenticação dos pacotes:
 \begin{itemize}
 	\item java.net.DatagramPacket: permite a criação de datagramas UDP
   	\item java.net.DatagramSocket: permite a criação de sockets UDP
-    \item javax.crypto.Mac: permite o uso do algoritmo \textbf{HMAC} modo a garantir integridade e autenticação dos pacotes transferidos entre UDPAgent's e UDPMonitor
+    \item javax.crypto.Mac: permite o uso do algoritmo \textbf{HMAC} de modo a garantir integridade e autenticação dos pacotes transferidos entre UDPAgent's e UDPMonitor
     \item java.net.InetAddress: representa um endereço IP
     \item javax.crypto.spec.SecretKeySpec: permite a criação de uma chave a partir de um conjunto de bytes (que podem ser obtidos convertendo uma String para um array de bytes)
     \item java.net.ServerSocket: permite a criação de um servidor TCP que pode aceitar conexões de clientes numa determinada porta
@@ -118,12 +118,12 @@ e foi pensada de forma a que o servidor ótimo seja o que apresente o menor valo
 
 Para garantir a autenticidade e a integridade das mensagens trocadas entre o UDPMonitor e o UDPAgent é usada uma chave conhecida tanto pelo Monitor como pelos Agent's, esta chave é uma \texttt{String} arbitrária e com o valor de "\textbf{abcdfasdgasefdgsdp}". A partir daqui, e supondo que \texttt{msg} é o conteúdo que é necessário ser enviado do UDPAgent para o UDPMonitor, acrescentamos no início desta mesma mensagem a \texttt{hash} associada à mensagem e à chave acima indicada, esta \texttt{hash} é obtida com recurso ao algoritmo SHA256 que gera uma \texttt{hash} de 256bits ou 32 bytes. Desta forma, o pacote enviado pelo UDPAgent ao UDPMonitor é "\texttt{hash} (32 bytes) + \texttt{msg}". Quando este mesmo pacote é recebido pelo UDPMonitor, este extrái o mesmo para um conjunto de bytes, e separa a \texttt{hash} da \texttt{msg}. Após, isto, calcula uma nova \texttt{hash} da \texttt{msg} tendo em conta a chave que partilhada entre o mesmo e o UPDAgent e compara o mesmo com o valor de \texttt{hash} extraído anteriomente, caso o valor seja o mesmo garante-se tanto a autenticidade como a integridade da mensagem recebida.
 
-O cálculo da bandwidth ofereceu alguns obstáculos na obtenção de um valor representativo sendo que uma das decisões tomadas nestes sentido foi a adição da bandwidth (BW) da ligação (tanto entre cliente-ReverseProxy como entre servidor HTTP-ReverseProxy) num dado instanto ao valor presente na tabela de estados. Porém esta abordagem apresentava um problema, visto que, a bandwidth iria aumentar indefinidamente, algo que não acontece na realidade. Este problema é resolvido guardando valor da bandwidth anterior (prevBW) e, na altura da adição, em vez de se adicionar BW adiciona-se (BW-prevBW). Para além disso, de modo a que, quando uma determinada ligação caia esta não mantenha o valor da bandwidth na tabela (visto a mesma já não ter influência no mesmo), subtrai-se BW ao valor existente na tabela de estados. Apesar de tudo a abordagem descrita apresentava ainda um problema, visto que a maior parte das vezes a bandwidth era igual a 0 algo justificado pelo pequeno intervalo de tempo e pequeno número de bytes usado para calcular a bandwidth. Sendo assim, em vez de este ser calculado a cada 1024 bytes passa a ser calculado de 20 em 20 ciclos de 1024 bytes. A fórmula usada para calcular a bandwidth é a seguinte:
+O cálculo da bandwidth ofereceu alguns obstáculos na obtenção de um valor representativo sendo que uma das decisões tomadas nestes sentido foi a adição da bandwidth (BW) da ligação (tanto entre cliente-ReverseProxy como entre servidor HTTP-ReverseProxy) num dado instante ao valor presente na tabela de estados. Porém esta abordagem apresentava um problema, visto que, a bandwidth iria aumentar indefinidamente, algo que não acontece na realidade. Este problema é resolvido guardando valor da bandwidth anterior (prevBW) e, na altura da adição, em vez de se adicionar BW adiciona-se (BW-prevBW). Para além disso, de modo a que, quando uma determinada ligação caia esta não mantenha o valor da bandwidth na tabela (visto a mesma já não ter influência no mesmo), subtrai-se BW ao valor existente na tabela de estados. Apesar de tudo a abordagem descrita apresentava ainda um problema, visto que a maior parte das vezes a bandwidth era igual a 0 algo justificado pelo pequeno intervalo de tempo e pequeno número de bytes usado para calcular a bandwidth. Sendo assim, em vez de este ser calculado a cada 1024 bytes passa a ser calculado de 20 em 20 ciclos de 1024 bytes. A fórmula usada para calcular a bandwidth é a seguinte:
 \begin{verbatim}
 time (em s) = (timeInicio (em ms) - timeFim (em ms)) / 1000
 BW (em Kbps) = (nRT (número de bytes lidos)/1024) / time
 \end{verbatim}
-No caso de, numa determinada ligação, o número de ciclos  não seja múltiplo de 20 a fórmula acima apresenta é aplicada.
+No caso de, numa determinada ligação, o número de ciclos  não seja múltiplo de 20 a fórmula acima apresentada é aplicada.
 \newline
 
 {\color{red}TODO: detalhes, parâmetros, bibliotecas de funções, etc.}
@@ -159,7 +159,7 @@ Como tal foi executado em cada máquina onde corre o UDPAgent (máquina n2, n3 e
 \begin{verbatim}
 $ mini-httpd -d /srv/ftp/
 \end{verbatim}
-criando assim um servidor HTTP em cada uma que possui dois ficheiros que se podem descarregar. Para além disso é colocado a executar na máquina n5 o Reverse Proxy e o UDPMonitor.
+criando assim um servidor HTTP em cada uma que possui cinco ficheiros que se podem descarregar. Para além disso é colocado a executar na máquina n5 o Reverse Proxy e o UDPMonitor.
 Após isso é feito um pedido \texttt{wget} a partir do cliente com o endereço IP 10.0.2.20, por exemplo:
 \begin{verbatim}
 $ wget http://10.0.0.13/teste1Gb.db
@@ -181,7 +181,6 @@ O trabalho realizado cumpre os requisitos propostos podendo, no entanto, ser mel
     \item [PDU] Protocol Data Unit
     \item [SIR] Server Information Request
     \item [SIRR] Server Information Request Response
-    \item [PDU] Protocol Data Unit
     \item [Sigar] System Information Gatherer and Reporter
     \item [HMAC] Hash-Based Message Authentication Code
     \item [SHA] Secure Hash Algorithm
