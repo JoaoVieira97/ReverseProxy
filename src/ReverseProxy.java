@@ -66,14 +66,9 @@ class Connection implements Runnable{
                 if(calcCicle==20){
                     timeE = System.currentTimeMillis();
                     time = (double)(timeE-timeS)/1000;
-                    if(time!=0.f){
-                        prevBW=BW;
-                        BW = ((double)nRT/1024) /time;
-                    } 
-                    else{
-                        prevBW=BW;
-                        BW=0;
-                    }
+                    prevBW=BW;
+                    if(time!=0.f) BW = ((double)20*nR/1024) /time;
+                    else BW=0;
                     calcCicle=0;
                     nRT=0;
                     synchronized(this.st){
@@ -87,14 +82,9 @@ class Connection implements Runnable{
             if(calcCicle!=0){
                 timeE = System.currentTimeMillis();
                 time = (double)(timeE-timeS)/1000;
-                if(time!=0.f){
-                    prevBW=BW;
-                    BW = ((double)nRT/1024) /time;
-                } 
-                else{
-                    prevBW=BW;
-                    BW=0;
-                }
+                prevBW=BW;
+                if(time!=0.f) BW = ((double)calcCicle*nR/1024) /time;
+                else BW=0;
                 synchronized(this.st){
                     this.st.updateBW(serverIp,BW-prevBW);
                 }
