@@ -31,7 +31,7 @@ Pretende-se implementar um serviço de distribuição de carga com servidor prox
 É importante referir é que no nosso trabalho as conexões dos clientes não são desviadas sendo criado um ``túnel'' no Reverse Proxy entre o servidor HTTP de back-end escolhido e o cliente. Esta decisão foi tomada devido à menor complexidade envolvida na sua implementação representando, no entanto, um ponto de falha grave no Reverse Proxy.
 O sistema desenvolvido pode ser dividido em 3 componentes princpais: MonitorUDP, tabela de estado e o ``Reverse Proxy''. 
 
-O MonitorUDP envia, em Multicast, um datagrama UDP de 3 em 3 segundos para todos os agenteUDP's (um por cada servidor HTTP back-end) estes respondem depois, em Unicast, com informação relativa ao estado do servidor a que se encontram assocaidos. O MonitorUDP, ao receber um datagrama UDP de um dos agenteUDP's, calcula o RTT(Round Trip Time), obtém o IP e porta de origem do datagrama e atualiza a tabela de estado referente ao servidor HTTP back-end do qual foi recebido o datagrama.
+O MonitorUDP envia, em Multicast, um datagrama UDP de 3 em 3 segundos para todos os agenteUDP's (um por cada servidor HTTP back-end) estes respondem depois, em Unicast, com informação relativa ao estado do servidor a que se encontram associados. O MonitorUDP, ao receber um datagrama UDP de um dos agenteUDP's, calcula o RTT(Round Trip Time), obtém o IP e porta de origem do datagrama e atualiza a tabela de estado referente ao servidor HTTP back-end do qual foi recebido o datagrama.
 
 A tabela de estado possui, em cada linha, informação referente a um único servidor HTTP back-end, sendo que esta informação é organizada da seguinte maneira:
 
@@ -124,6 +124,7 @@ time (em s) = (timeInicio (em ms) - timeFim (em ms)) / 1000
 BW (em Kbps) = (nRT (número de bytes lidos)/1024) / time
 \end{verbatim}
 No caso de, numa determinada ligação, o número de ciclos  não seja múltiplo de 20 a fórmula acima apresenta é aplicada.
+\newline
 
 {\color{red}TODO: detalhes, parâmetros, bibliotecas de funções, etc.}
 
