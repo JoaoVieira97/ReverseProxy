@@ -77,75 +77,74 @@ Como é possível observar são estabelecidas várias interações entre os inte
 
 
 \section{Implementação}
-O trabalho foi desenvolvido em Java e como tal decidimos dividir o código pelas seguintes classes:
-\begin{itemize}
-	\item StateTable: Representa a tabela de estados
-    \item UDPMonitor: Envia datagramas UDP de 3 em 3 segundos para o canal multicast 
-    \item UDPAgent: Responde em unicast ao MonitorUDP com o estado do servidor HTTP a que está associado
-    \item ListenUDPAgents (Thread do UDPMonitor): Recolhe os datagramas enviados pelos UDPAgent's e atualiza com estes diagramas a tabela de estados (StateTable)
-    \item Timer: Usado pelo UDPMonitor e pelo ListenUDPAgents de modo a calcular o RTT das ligações com os servidores
-    \item ReverseProxy: O Reverse Proxy funciona como um servidor TCP recebendo pedidos na porta 80 dos clientes
-    \item Connection (Thread do ReverseProxy): criada para tratar de cada cliente, ou seja cada cliente possui uma Thread Connection no ReverseProxy sendo que esta Thread trata de escolher o servidor HTTP da tabela de estados, inicia a Thread ListenFromClient e fica à escuta do servidor HTTP e envia os dados para o cliente
-    \item ListenFromClient (Thread da Connection): Envia os dados que recebe do cliente para o servidor HTTP
-\end{itemize}
-Tanto a classe Timer bem como StateTable devem possuir lock's de modo a impedir que Threads/Processos diferentes tenham acesso simultaneamente aos dados, evitando dead lock's e que os dados sejam "corrompidos".
+O trabalho foi desenvolvido utilizando a linguangem de programação Java e, como tal, decidimos dividir o código pelas seguintes classes:
+\begin{description}
+    \item [StateTable] Representa a tabela de estados
+    \item [UDPMonitor] Envia datagramas UDP de 3 em 3 segundos para o canal multicast 
+    \item [UDPAgent] Responde em unicast ao MonitorUDP com o estado do servidor HTTP a que está associado
+    \item [ListenUDPAgents (Thread do UDPMonitor)] Recolhe os datagramas enviados pelos UDPAgent's e atualiza com estes diagramas a tabela de estados (StateTable)
+    \item [Timer] Usado pelo UDPMonitor e pelo ListenUDPAgents de modo a calcular o RTT das ligações com os servidores
+    \item [ReverseProxy] O Reverse Proxy funciona como um servidor TCP recebendo pedidos na porta 80 dos clientes
+    \item [Connection (Thread do ReverseProxy)] criada para tratar de cada cliente, ou seja cada cliente possui uma Thread Connection no ReverseProxy sendo que esta Thread trata de escolher o servidor HTTP da tabela de estados, inicia a Thread ListenFromClient e fica à escuta do servidor HTTP e envia os dados para o cliente
+    \item [ListenFromClient (Thread da Connection)] Envia os dados que recebe do cliente para o servidor HTTP
+\end{description}
 
-Em relação às bibliotecas usadas, foi necessário o uso de uma biblioteca externa às do Java. Esta biblioteca foi o Sigar (System Information Gatherer and Reporter) da Hyperic, que nos permite obter os dados como percentagem de uso de CPU e de memória livre do Sistema no todo (máquina com UDPAgent e servidor HTTP a correr) e não apenas o que a máquina virtual do Java disponibilizou para a execução do UDPAgent. Para além disso funciona em vários sistemas operativos para além do GNU/Linux. É, contudo, importante salientar que nos nossos testes efetuados, como os mesmos são realizados numa mesma máquina, os dados obtidos pelos vários UDPAgent's é o mesmo. Desta biblioteca foram usado as seguintes funcionalidades:
+Tanto a classe Timer bem como a StateTable foram implementadas tendo em mente o controlo de acesso concorrentes nomeandamente com recurso a lock's de modo a impedir que Threads/Processos diferentes tenham acesso simultaneo aos dados, evitando assim race conditions como dead lock's inconsistências nos dados.
+
+A biblioteca Sigar, da Hyperic, permite-nos obter dados como a percentagem de uso de CPU e de memória livre do sistema(com UDPAgent e servidor HTTP) e não apenas o que a máquina virtual do Java(JVM) disponibilizou para a execução do UDPAgent. De realçar que esta biblioteca é cross-platform \textbf{i.e.} funciona em vários sistemas operativos. Contudo é importante salientar que, dado os testes efetuados serem realizados na máquina, os dados obtidos pelos vários UDPAgent's é o mesmo. Desta biblioteca foram usado as seguintes funcionalidades:
 \begin{itemize}
 	\item org.hyperic.sigar.Sigar: necessário de modo a poder usar as funcionalidades seguintes
 	\item org.hyperic.sigar.Mem: permite a obtenção de dados referentes à memória RAM
 	\item org.hyperic.sigar.Cpu: permite a obtenção de dados referentes ao CPU
 \end{itemize}
-Já em relação às bibliotecas predefinidas do Java as mais importantes a referir são as que permitem a conexão entre os diferentes componentes seja por TCP ou UDP e a que nos permite garantir a integridade bem como autenticação dos pacotes, as mesmas são as seguintes:
+Já em relação às bibliotecas predefinidas do Java destacam-se as que permitem a conexão entre os diferentes componentes, tanto por TCP como por UDP, e as que nos permite garantir a integridade bem como autenticação dos pacote:
 \begin{itemize}
 	\item java.net.DatagramPacket: permite a criação de datagramas UDP
   	\item java.net.DatagramSocket: permite a criação de sockets UDP
-    \item javax.crypto.Mac: permite o uso do algoritmo HMAC (hash-based message authentication code) de modo a garantir integridade e autenticação dos pacotes transferidos entre UDPAgent's e UDPMonitor
+    \item javax.crypto.Mac: permite o uso do algoritmo \textbf{HMAC} modo a garantir integridade e autenticação dos pacotes transferidos entre UDPAgent's e UDPMonitor
     \item java.net.InetAddress: representa um endereço IP
-    \item javax.crypto.spec.SecretKeySpec: permite a criação de uma chave a partir de um conjunto de bytes (ou a partir de String com a conversão da mesma para bytes) com um determinado algoritmo à escolha
-    \item java.net.ServerSocket: permite a criação de um servidor TCP que pode aceitar conexões de clientes através de uma porta à escolha
+    \item javax.crypto.spec.SecretKeySpec: permite a criação de uma chave a partir de um conjunto de bytes (que podem ser obtidos convertendo uma String para um array de bytes)
+    \item java.net.ServerSocket: permite a criação de um servidor TCP que pode aceitar conexões de clientes numa determinada porta
 	\item java.net.Socket: permite a criação de sockets TCP
     \item java.net.MulticastSocket: permite a criação de um grupo Multicast
 \end{itemize}
 
-Quanto ao algoritmo de escolha do servidor HTTP por parte do Reverse Proxy o mesmo tem em conta os parâmetros memória livre, percentagem de CPU usado, RTT e bandwidth. Cada um dos parâmetros tem o mesmo peso ou seja 25\%(1/4=0.25). Contudo, como todos os valores não são percentagens é necessário garantir isso mesmo de modo a haver uma escolha justa e correta. Sendo assim o RTT é dividido por 3000 ms (3s, o tempo entre datagramas enviados pelo UDPMonitor). Já em relação à memória livre e ao bandwidth é guardado em duas variáveis o maior valor que já apareceu de cada um (maxRam e maxBW). Depois divide-se a memoria livre e a bandwidth por estes valores garantindo assim que serão sempre entre 0 e 1. Como tal é aplicado a cada linha da tabela a seguinte fórmula:
+O algoritmo usado na escolha do servidor HTTP (para um dado cliente) por parte do Reverse Proxy tem em conta os valores armazenados na StateTable nomeadamente: percentagem de memória livre, percentagem de CPU usado, RTT e bandwidth(banda larga). O peso associado a cada um dos parâmetros é de 25\%(1/4=0.25). Por forma a que todos os parametros tenham efetivamente o mesmo peso no algoritmo de escolha é necesário garantir que todos sejam valores percentuais. Para tal o RTT é dividido por 3000 ms (3s, o tempo entre datagramas enviados pelo UDPMonitor), a memória livre e a bandwidth são divididas pelo valor máximo já encontrado para cada um dos campos garantindo que os valores se encontrão sempre entre 0 e 1. A seguinte fórmula é aplicada a cada linha da tabela:
 \begin{verbatim}
 res = 0.25 * percentagem_de_uso_do_CPU - 0.25 * memoria_RAM_livre / maxRAM 
 	+ 0.25 * RTT / 3000 + 0.25 * BW / maxBW;
 \end{verbatim}
-sendo depois escolhido o servidor com o menor valor. O valor da memória livre é subtraido devido a ser algo "bom" e não "mau" e como se pretende calcular o minimo.
+e foi pensada de forma a que o servidor ótimo seja o que apresente o menor valor de todos os presentes na tabela.
 
-Para garantir a autenticidade e a integridade nas mensagens trocadas entre o UDPMonitor e o UDPAgent decidimos implementar uma chave/password conhecida tanto pelo Monitor como pelos Agent's, esta password foi decidida por nós e tem o valor de "\texttt{abcdfasdgasefdgsdp}". A partir daqui e supondo que \texttt{msg} é o conteúdo que é necessário ser enviado do Agent para o Monitor, acrescentamos no início desta mesma mensagem uma \texttt{hash} produzida tendo em conta a key apresentada em cima. Desta forma, o pacote enviado pelo UDPAgent ao UDPMonitor é "\texttt{hash} (32 bytes) + \texttt{msg}". De seguida, quando este mesmo pacote é recebido pelo Monitor, este extrái o mesmo para um conjunto de bytes, e separa a \texttt{hash} da \texttt{msg}. Após, isto, calcula uma nova \texttt{hash} da \texttt{msg} tendo em conta a key que tanto este como os Agent's conhecem, se tudo correr como planeado, o valor desta \texttt{hash} calculada é igual ao valor da \texttt{hash} recebida.
-Desta forma e através deste algoritmo conseguimos garantir simultaneamente a autenticidade e a integridade das mensagens que são trocadas entre o UDPMonitor e os UDPAgent's. Fica assim explicitado o HMAC.
+Para garantir a autenticidade e a integridade das mensagens trocadas entre o UDPMonitor e o UDPAgent é usada uma chave conhecida tanto pelo Monitor como pelos Agent's, esta chave é uma \texttt{String} arbitrária e com o valor de "\textbf{abcdfasdgasefdgsdp}". A partir daqui, e supondo que \texttt{msg} é o conteúdo que é necessário ser enviado do UDPAgent para o UDPMonitor, acrescentamos no início desta mesma mensagem a \texttt{hash} associada à mensagem e à chave acima indicada, esta \texttt{hash} é obtida com recurso ao algoritmo SHA256 que gera uma \texttt{hash} de 256bits ou 32 bytes. Desta forma, o pacote enviado pelo UDPAgent ao UDPMonitor é "\texttt{hash} (32 bytes) + \texttt{msg}". Quando este mesmo pacote é recebido pelo UDPMonitor, este extrái o mesmo para um conjunto de bytes, e separa a \texttt{hash} da \texttt{msg}. Após, isto, calcula uma nova \texttt{hash} da \texttt{msg} tendo em conta a chave que partilhada entre o mesmo e o UPDAgent e compara o mesmo com o valor de \texttt{hash} extraído anteriomente, caso o valor seja o mesmo garante-se tanto a autenticidade como a integridade da mensagem recebida.
 
-{\color{red}
-Em relação ao cálculo da bandwidth, o mesmo apresentou algumas dificuldades, contudo obteve-se o resultado pretendido adicionando o bandwidth (BW) atual da ligação seja entre cliente-ReverseProxy seja entre servidor HTTP-ReverseProxy à existente na tabela de estados a cada conjunto de 1024 bytes. Porém esta abordagem apresentava um problema, visto que, a bandwidth iria aumentar indefinidamente, algo não real. Como forma a resolver este problema, é guardado valor da bandwidth anterior (prevBW) e, na altura da adição, em vez de se adicionar BW adiciona-se (BW-prevBW) resolvendo assim o problema do aumento indefinido. Para além disso, de modo a que quando uma determinada ligação caia esta nao mantenha o valor da bandwidth na tabela (visto a mesma já nao influenciar), o que se faz é subtrair -BW ao valor existente na tabela de estados. Apesar de tudo, a nossa abordagem ainda apresentava um problema, visto que a maior parte das vezes a bandwidth era igual a 0 e isso devia-se ao pequeno intervalo de tempo e pequeno número de bytes em que era calculado a bandwidth. Sendo assim, em vez de ser a cada ciclo de 1024 bytes é calculado de 20 em 20 ciclos de 1024 bytes. É importante referir que a fórmula usada para calcular a bandwidth é a seguinte:
+O cálculo da bandwidth ofereceu alguns obstáculos na obtenção de um valor representativo sendo que uma das decisões tomadas nestes sentido foi a adição da bandwidth (BW) da ligação (tanto entre cliente-ReverseProxy como entre servidor HTTP-ReverseProxy) num dado instanto ao valor presente na tabela de estados. Porém esta abordagem apresentava um problema, visto que, a bandwidth iria aumentar indefinidamente, algo que não acontece na realidade. Este problema é resolvido guardando valor da bandwidth anterior (prevBW) e, na altura da adição, em vez de se adicionar BW adiciona-se (BW-prevBW). Para além disso, de modo a que, quando uma determinada ligação caia esta não mantenha o valor da bandwidth na tabela (visto a mesma já não ter influência no mesmo), subtrai-se BW ao valor existente na tabela de estados. Apesar de tudo a abordagem descrita apresentava ainda um problema, visto que a maior parte das vezes a bandwidth era igual a 0 algo justificado pelo pequeno intervalo de tempo e pequeno número de bytes usado para calcular a bandwidth. Sendo assim, em vez de este ser calculado a cada 1024 bytes passa a ser calculado de 20 em 20 ciclos de 1024 bytes. A fórmula usada para calcular a bandwidth é a seguinte:
 \begin{verbatim}
 time (em s) = (timeInicio (em ms) - timeFim (em ms)) / 1000
 BW (em Kbps) = (nRT (número de bytes lidos)/1024) / time
 \end{verbatim}
-Por fim, caso numa determinada ligação o número de ciclos seja menor que 20 ou não seja multiplo de 20 o que é feito é o mesmo, ou seja é aplicado a fórmula que se apresenta acima.
-}
+No caso de, numa determinada ligação, o número de ciclos  não seja múltiplo de 20 a fórmula acima apresenta é aplicada.
 
 {\color{red}TODO: detalhes, parâmetros, bibliotecas de funções, etc.}
 
 \section{Testes e resultados}
-De modo a testar o que foi desenvolvido foi usado o \textbf{CORE}, um emulador de redes numa máquina, sendo que o mesmo foi usado na máquina virtual fornecida pelos docentes. A topologia usada consistiu no seguinte:
+De modo a testar o que foi desenvolvido foi usado o \textbf{CORE}, um emulador de redes numa máquina, sendo que o mesmo foi usado na máquina virtual fornecida pelos docentes. A topologia usada apresenta-se de seguida:
 \begin{figure}[H]
 	\centering
 	\includegraphics[height=6cm]{topologia.png}
 \end{figure}
-Numa primeira fase foi testada a comunicação UDP entre os UDPAgent's e o UDPMonitor através da execução de 3 UDPAgent's nas máquinas n2,n3 e n4 e o UDPMonitor na máquina n5 e observar o debug como presente na imagem seguinte:
+Numa primeira fase foi testada a comunicação UDP entre os UDPAgent's e o UDPMonitor através da execução de 3 UDPAgent's nas máquinas n2,n3 e n4 e o UDPMonitor na máquina n5 e observar o output resultante, como se pode observar de seguida:
 \begin{figure}[H]
 	\advance\leftskip-2cm
     \includegraphics[height=11cm]{teste1.png}
 \end{figure}
-De modo a poder executar é necessário compilar o código:
+
+A compilação do código pode ser obtida executando as seguintes instruções:
 \begin{verbatim}
 $ javac UDPMonitor.java StateTable.java ReverseProxy.java
 $ javac -classpath Sigar/sigar.jar UDPAgent.java
 \end{verbatim}
-Para executar o Reverse Proxy bem como o UDPMonitor é necessário executar na máquina:
+O seguinte comando é usado para executar o Reverse Proxy bem como o UDPMonitor:
 \begin{verbatim}
 $ java UDPMonitor
 \end{verbatim}
@@ -154,24 +153,24 @@ Já o UDPAgent nas outras máquinas deve ser executado da seguinte maneira:
 $ java -classpath Sigar/sigar.jar:. UDPAgent
 \end{verbatim}
 
-Já numa segunda fase foi testado a escolha do servidor HTTP por parte do Reverse Proxy bem como se a criação do canal entre o mesmo e o cliente era feito de forma transparente.
+Numa segunda fase foi testado o algoritmo de escolha do servidor HTTP por parte do Reverse Proxy bem como se a criação do canal entre o mesmo e o cliente era feito de forma transparente.
 Como tal foi executado em cada máquina onde corre o UDPAgent (máquina n2, n3 e n4) o seguinte comando:
 \begin{verbatim}
 $ mini-httpd -d /srv/ftp/
 \end{verbatim}
-criando assim um servidor HTTP em cada uma, em que o mesmo possui dois ficheiros dos quais se pode realizar download. Para além disso é colocado a executar na máquina n5 o Reverse Proxy e o UDPMonitor.
-Após isso foi feito um pedido wget a partir do cliente com o endereço IP 10.0.2.20, por exemplo:
+criando assim um servidor HTTP em cada uma que possui dois ficheiros que se podem descarregar. Para além disso é colocado a executar na máquina n5 o Reverse Proxy e o UDPMonitor.
+Após isso é feito um pedido \texttt{wget} a partir do cliente com o endereço IP 10.0.2.20, por exemplo:
 \begin{verbatim}
 $ wget http://10.0.0.13/teste1Gb.db
 \end{verbatim}
-ao servidor Reverse Proxy (endereço IP: 10.0.0.13). Depois basta verificar se o ficheiro teste1Gb.db está presente no cliente e em caso positivo pode-se concluir que a operação funcionou corretamente. Ilustra-se na imagem seguinte o teste realizado:
+ao servidor Reverse Proxy (endereço IP: 10.0.0.13). Depois basta verificar se o ficheiro teste1Gb.db está presente no cliente e, em caso positivo, pode concluir-se que a operação funcionou corretamente. Ilustra-se na imagem seguinte o teste realizado:
 \begin{figure}[H]
 	\advance\leftskip-3cm
     \includegraphics[height=13cm]{teste2.png}
 \end{figure}
 
 \section{Conclusões e trabalho futuro}
-Apesar de o trabalho cumprir os requisitos propostos poderia ainda ser melhorado, no sentido em que em vez do Reverse Proxy realizar a ligação entre o servidor back-end e o cliente, seria em alternativa enviado ao cliente o endereço do servidor back-end de modo ao mesmo ligar-se a ele, deixando assim dos dados passarem pelo Reverse Proxy, e evitando que se estabeleça aqui um ponto de falha.
+O trabalho realizado cumpre os requisitos propostos podendo, no entanto, ser melhorado, no sentido em que em vez do Reverse Proxy realizar a ligação entre o servidor back-end e o cliente, esta ligação seria estabelecida diretamente entre ambos enviando, para isso, o endereço do servidor back-end ao cliente evitando que se estabeleça um ponto de falha no Reverse Proxy.
 
 \section{Lista de Siglas e Acrónimos}
 \begin{description}
@@ -182,7 +181,9 @@ Apesar de o trabalho cumprir os requisitos propostos poderia ainda ser melhorado
     \item [SIR] Server Information Request
     \item [SIRR] Server Information Request Response
     \item [PDU] Protocol Data Unit
+    \item [Sigar] System Information Gatherer and Reporter
     \item [HMAC] Hash-Based Message Authentication Code
+    \item [SHA] Secure Hash Algorithm
     \item [RTT] Round Trip Time
     \item [CORE] Common Open Research Emulator
 \end{description}
