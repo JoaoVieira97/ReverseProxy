@@ -15,11 +15,8 @@ class StateTable{
         this.maxRAM = 0;
         this.maxBW = 0;
     }
-
-    void insertLine(String s){
-        this.table.add(s);
-    }
-
+    
+    //update line if already exists but without changing BW, if not exists add new line
     void updateLine(String s){
         ListIterator<String> it = this.table.listIterator();
         boolean notFound=true;
@@ -38,7 +35,8 @@ class StateTable{
         if(notFound) this.table.add(s + ";;0");
         if (ram > maxRAM) maxRAM = ram;
     }
-
+    
+    //return line of an server with IP
     String getLine(String ip){
         for(String s: this.table){
             String[] aux = s.split(";;");
@@ -46,7 +44,8 @@ class StateTable{
         }
         return null;
     }
-
+    
+    //check if sever with IP is already on state table
     boolean containsIp(String ip){
         for(String s: this.table){
             String[] aux = s.split(";;");
@@ -54,7 +53,8 @@ class StateTable{
         }
         return false;
     }
-
+    
+    //update bandwdith of an server with IP
     void updateBW(String ip, double bw){
        ListIterator<String> it = this.table.listIterator();
        boolean notFound=true;
@@ -72,6 +72,7 @@ class StateTable{
         }
     }
 
+    //choose an server from state table
     String getServerAlgorithm(){
         int size = this.table.size();
         double[] values = new double[size];

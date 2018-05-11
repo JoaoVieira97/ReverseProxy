@@ -49,12 +49,14 @@ class UDPAgent{
                 String rcvd = new String(probeRequest.getData(), 0, probeRequest.getLength()) + ", from address: "+ probeRequest.getAddress() + ", port: " + probeRequest.getPort();
                 System.out.println(rcvd);
                 
+                //get state from server
                 mem = sigar.getMem();
                 cpu = sigar.getCpu();
                 memFree = mem.getFree();
                 cpuTotalTime = cpu.getTotal(); 
                 cpuPerc = (cpuTotalTime-cpu.getIdle())/cpuTotalTime;
-
+                
+                //create message and hash 
                 resp = "SIRR\n" + cpuPerc + ";;" + memFree;
                 response = resp.getBytes("UTF-8");
                 hmac256.reset();

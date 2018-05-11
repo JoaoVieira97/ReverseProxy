@@ -22,7 +22,8 @@ class UDPMonitor{
 			agentUDPResponse.start();
             Thread reverseProxy = new Thread(new ReverseProxy(st));
             reverseProxy.start();
-
+            
+            //sends UDP datagrams with the mensage "SIR" 3 in 3 seconds
             System.out.println("Sending");
 			while (true){
 				Thread.sleep(3 * 1000);
@@ -79,7 +80,6 @@ class ListenUDPAgents implements Runnable {
 			String msg;
 			int i;
 	        long RTT;
-            String srcIp;
             DatagramPacket receivePacket;
 	        Mac hmac256 = Mac.getInstance("HmacSHA256");
             SecretKeySpec secretKey = new SecretKeySpec(this.key,"AES");
@@ -90,24 +90,27 @@ class ListenUDPAgents implements Runnable {
 			byte[] hash, trimmed; 
 
        		while (true){
-                //clean
+                //clean vars
                 Arrays.fill(receiveData,(byte)0);
                 Arrays.fill(msgReceived,(byte)0);
-
+                
                 receivePacket = new DatagramPacket(receiveData, receiveData.length);
                 serverSocket.receive(receivePacket);
+                //calculate RTT
                 synchronized(this.t){
                     RTT = System.currentTimeMillis() - this.t.get();
                 }
-                srcIp=receivePacket.getAddress().getHostAddress();
                
                 receiveData=receivePacket.getData();
                 
+                //separate hash from message
                 System.arraycopy(receiveData,0,hashReceived,0,32);
 				System.arraycopy(receiveData,32,msgReceived,0,receiveData.length-32);
                
+                //remove padding
                 trimmed = trim(msgReceived);
-
+                
+                //calculate hash from message
                 hmac256.reset();
 				hmac256.init(secretKey);
                 hmac256.update(trimmed);
@@ -115,7 +118,8 @@ class ListenUDPAgents implements Runnable {
                
                 msg = new String(msgReceived);
                 msg = msg.substring(5); //remove SIRR\n
-
+                
+                //if hash received equals to calculated hash save data on state table
 				if(Arrays.toString(hash).equals(Arrays.toString(hashReceived))){
 					msg = receivePacket.getAddress().getHostAddress() + ";;" + receivePacket.getPort() + ";;" + msg + ";;" + RTT;
 					synchronized(this.st){
