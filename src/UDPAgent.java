@@ -10,8 +10,23 @@ import org.hyperic.sigar.Sigar;
 import org.hyperic.sigar.Mem;
 import org.hyperic.sigar.Cpu;
 
+/** 
+ * <h1>UDP Agent</h1>
+ * The UDPAgent class implements the component responsible for receiving 
+ * multicast information request messages from UDPMonitor and answers it
+ * on unicast with the information of the back-end server he's running in.
+ *
+ * @author Grupo 49
+ * @version 1.0
+ *
+ */
 class UDPAgent{
 
+    /**
+     * Send information of server to UDPMonitor and uses hashing to
+     * to ensure authenticity and integrity.
+     * @param args main method arguments
+     */
     public static void main(String[] args){
         try{
             byte[] buf=new byte[10];
@@ -77,7 +92,7 @@ class UDPAgent{
             receiveSkt.close();
         }catch(Exception e){
             e.printStackTrace();
-        }
-         
+        }   
     }
+    
 }
