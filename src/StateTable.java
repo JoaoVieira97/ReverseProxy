@@ -1,9 +1,13 @@
 import java.util.ArrayList;
 import java.util.ListIterator;
 
-/*
-Table design (each line):
-IP;;Port;;CPU(%);;RAM(free Memory, bytes);;RTT(ms);;BW(Kbps)
+/**
+* Saves the server HTTP status 
+* Table design (each line):
+* IP;;Port;;CPU(%);;RAM(free Memory, bytes);;RTT(ms);;BW(Kbps)
+* 
+* @author Grupo 49
+* @version 1.0
 */
 class StateTable{
     private ArrayList<String> table;
@@ -16,7 +20,11 @@ class StateTable{
         this.maxBW = 0;
     }
     
-    //update line if already exists but without changing BW, if not exists add new line
+    /**
+    * Update line if already exists but without changing BW, if not exists add new line
+    * @param s String with all values except BW
+    * @return Nothing
+    */
     void updateLine(String s){
         ListIterator<String> it = this.table.listIterator();
         boolean notFound=true;
@@ -36,7 +44,11 @@ class StateTable{
         if (ram > maxRAM) maxRAM = ram;
     }
     
-    //return line of an server with IP
+    /**
+    * Return status line of an server with IP
+    * @param ip ip of the server wanted
+    * @return status of a server with ip
+    */
     String getLine(String ip){
         for(String s: this.table){
             String[] aux = s.split(";;");
@@ -45,7 +57,11 @@ class StateTable{
         return null;
     }
     
-    //check if sever with IP is already on state table
+    /**
+    * Check if sever with IP is already on state table
+    * @param ip ip of the server that we want to check
+    * @return false if don't exist and true if exist
+    */
     boolean containsIp(String ip){
         for(String s: this.table){
             String[] aux = s.split(";;");
@@ -54,7 +70,12 @@ class StateTable{
         return false;
     }
     
-    //update bandwdith of an server with IP
+    /**
+    * Update bandwdith of an server with IP
+    * @param ip ip of the server that we want to change the BW
+    * @param bw the value of the new bandwidth
+    * @return Nothing
+    */
     void updateBW(String ip, double bw){
        ListIterator<String> it = this.table.listIterator();
        boolean notFound=true;
@@ -72,7 +93,10 @@ class StateTable{
         }
     }
 
-    //choose an server from state table
+    /**
+    * Choose an server from state table acording to an algorithm
+    * @return ip of the choosen server
+    */
     String getServerAlgorithm(){
         int size = this.table.size();
         double[] values = new double[size];
