@@ -4,18 +4,23 @@ import java.io.OutputStream;
 import java.io.InputStream;
 
 /** 
- * <h1> Reverse Proxy </h1>
+ * <h1>Reverse Proxy</h1>
  * The ReverseProxy class implements the component responsible for
  * establishing the connection between a client and an HTTP server
- * and also delegating the servers to each client
+ * and also delegating the servers to each client.
  *
  * @author Grupo 49
  * @version 1.0
  *
  */
 class ReverseProxy implements Runnable{
+
     private StateTable st;
     
+    /**
+     * Constructor for class ReverseProxy.
+     * @param st state table
+     */
     public ReverseProxy(StateTable st){
         this.st = st;
     }
@@ -42,6 +47,7 @@ class ReverseProxy implements Runnable{
 }
 
 /**
+ * <h2>Connection</h2>
  * The Connection class is the communication channel between the client and the HTTP
  * server. 
  */
@@ -50,11 +56,19 @@ class Connection implements Runnable{
     private Socket s;
     private StateTable st;
 
+    /**
+     * Constructor for class Connection.
+     * @param s socket
+     * @param st state table
+     */
     public Connection(Socket s, StateTable st){
         this.s = s;
         this.st = st;
     }
 
+    /**
+     * Method required by Runnable classes.
+     */
     public void run(){
         String serverIp;
         long timeS, timeE;
@@ -139,7 +153,7 @@ class ListenFromClient implements Runnable{
     private String serverIp;
 
     /**
-     * Constructor for class ListFromClient
+     * Constructor for class ListFromClient.
      * @param inS   socket to client
      * @param outS  socket to HTTP server
      * @param st    table holding all info about all HTTP servers 
@@ -156,6 +170,9 @@ class ListenFromClient implements Runnable{
         }
     }
 
+    /**
+     * Method required by Runnable classes.
+     */
     public void run(){
         byte[] current=new byte[1024];
         int nR, nRT=0;

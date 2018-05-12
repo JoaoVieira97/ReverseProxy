@@ -2,18 +2,24 @@ import java.util.ArrayList;
 import java.util.ListIterator;
 
 /**
-* Saves the server HTTP status 
+* <h1>State Table</h1>
+* Saves the server HTTP status. 
 * Table design (each line):
 * IP;;Port;;CPU(%);;RAM(free Memory, bytes);;RTT(ms);;BW(Kbps)
 * 
 * @author Grupo 49
 * @version 1.0
+*
 */
 class StateTable{
+
     private ArrayList<String> table;
     private double maxRAM;
     private double maxBW;
     
+    /**
+     * Constructor for StateTable class.
+     */
     StateTable(){
         this.table=new ArrayList<String>();
         this.maxRAM = 0;
@@ -21,7 +27,7 @@ class StateTable{
     }
     
     /**
-    * Update line if already exists but without changing BW, if not exists add new line
+    * Update line if already exists but without changing BW, if not exists add new line.
     * @param s String with all values except BW
     * @return Nothing
     */
@@ -45,7 +51,7 @@ class StateTable{
     }
     
     /**
-    * Return status line of an server with IP
+    * Return status line of an server with IP.
     * @param ip ip of the server wanted
     * @return status of a server with ip
     */
@@ -58,7 +64,7 @@ class StateTable{
     }
     
     /**
-    * Check if sever with IP is already on state table
+    * Check if sever with IP is already on state table.
     * @param ip ip of the server that we want to check
     * @return false if don't exist and true if exist
     */
@@ -71,7 +77,7 @@ class StateTable{
     }
     
     /**
-    * Update bandwdith of an server with IP
+    * Update bandwdith of an server with IP.
     * @param ip ip of the server that we want to change the BW
     * @param bw the value of the new bandwidth
     * @return Nothing
@@ -94,7 +100,7 @@ class StateTable{
     }
 
     /**
-    * Choose an server from state table acording to an algorithm
+    * Choose an server from state table acording to an algorithm.
     * @return ip of the choosen server
     */
     String getServerAlgorithm(){
