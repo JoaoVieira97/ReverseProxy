@@ -3,6 +3,16 @@ import java.net.Socket;
 import java.io.OutputStream;
 import java.io.InputStream;
 
+/** 
+ * <h1> Reverse Proxy </h1>
+ * The ReverseProxy class implements the component responsible for
+ * establishing the connection between a client and an HTTP server
+ * and also delegating the servers to each client
+ *
+ * @author Grupo 49
+ * @version 1.0
+ *
+ */
 class ReverseProxy implements Runnable{
     private StateTable st;
     
@@ -10,15 +20,18 @@ class ReverseProxy implements Runnable{
         this.st = st;
     }
 
+    /**
+     * The run method is required by all Runnable implementing classes.
+     * In this case it accepts connections from clients via a ServerSocket.
+     */
     public void run(){
         try{
             ServerSocket ss = new ServerSocket(80);
 
             while(true){
-                //accept client
+                //wait for client connection and delegate thread
                 Socket clientSocket = ss.accept();
                 
-                //create and start a Thread for that client
                 Thread conect = new Thread(new Connection(clientSocket,st));
                 conect.start();
             }
@@ -28,6 +41,10 @@ class ReverseProxy implements Runnable{
     }
 }
 
+/**
+ * The Connection class is the communication channel between the client and the HTTP
+ * server. 
+ */
 class Connection implements Runnable{
 
     private Socket s;
@@ -44,16 +61,14 @@ class Connection implements Runnable{
         double BW=0, time, prevBW=0;
         int calcCicle=0;
         
-        //choose server
         synchronized(this.st){
             serverIp = this.st.getServerAlgorithm();
         }
 
         try{
-            //create socket to server HTTP 
+            //create socket to server HTTP port
             Socket sToServer = new Socket(serverIp,80);
         
-            //create and start Thread that listen from client and send to server HTTP
             Thread listenClient = new Thread(new ListenFromClient(s,sToServer,this.st,serverIp));
             listenClient.start();
 
@@ -63,6 +78,7 @@ class Connection implements Runnable{
             int nR, nRT=0;
             
             timeS = System.currentTimeMillis();
+            
             //Server to Client
             while((nR=in.read(current,0,1024))!=-1){
                 out.write(current,0,nR); //send
@@ -108,6 +124,13 @@ class Connection implements Runnable{
     }
 }
 
+
+
+/**
+ * <h2>ListenFromClient</h2>
+ * The ListFromClient class is responsible for taking input from the client and forwarding it to 
+ * the HTTP server as is, <b>i.e.</b> it is transmited as raw data.
+ */
 class ListenFromClient implements Runnable{
     
     private OutputStream out;
@@ -115,6 +138,13 @@ class ListenFromClient implements Runnable{
     private StateTable st;
     private String serverIp;
 
+    /**
+     * Constructor for class ListFromClient
+     * @param inS   socket to client
+     * @param outS  socket to HTTP server
+     * @param st    table holding all info about all HTTP servers 
+     * @param sIp   IP of the HTTP server
+     */
     public ListenFromClient(Socket inS, Socket outS,StateTable st, String sIp){
         try{
             this.out = outS.getOutputStream();
@@ -127,21 +157,19 @@ class ListenFromClient implements Runnable{
     }
 
     public void run(){
-        
         byte[] current=new byte[1024];
         int nR, nRT=0;
         long timeE, timeS;
         double time, BW=0, prevBW=0;
         int calcCicle=0;
 
-        //Client to Server
         try{
             timeS = System.currentTimeMillis();
             while((nR=this.in.read(current,0,1024)) != -1){
                 this.out.write(current,0,nR);
                 calcCicle++;
                 nRT+=nR;
-                //calculate BW
+                //caculate/update bandwith every 20 cycles to avoid round to 0
                 if(calcCicle==20){
                     timeE = System.currentTimeMillis();
                     time = (double)(timeE-timeS)/1000;
@@ -153,9 +181,9 @@ class ListenFromClient implements Runnable{
                         prevBW=BW;
                         BW=0;
                     }
+                    //reset counter for further measures
                     calcCicle=0;
                     nRT=0;
-                    //update BW on state table
                     synchronized(this.st){
                         this.st.updateBW(serverIp,BW-prevBW);
                     }
@@ -163,7 +191,7 @@ class ListenFromClient implements Runnable{
                 }   
             }
            
-            //case end with 1 a 19 cicles
+            //update even if no. of measures doesn't reach 20
             if(calcCicle!=0){
                 timeE = System.currentTimeMillis();
                 time = (double)(timeE-timeS)/1000;
@@ -175,13 +203,11 @@ class ListenFromClient implements Runnable{
                     prevBW=BW;
                     BW=0;
                 }
-                //update BW on state table
                 synchronized(this.st){
-                    this.st.updateBW(serverIp,BW-prevBW);
+                    this.st.updateBW(serverIp,BW-prevBW); //prevent ever increasing BW value
                 }
             }
             
-            //update BW on state table
             synchronized(this.st){
                 this.st.updateBW(serverIp,-BW);
             } 
