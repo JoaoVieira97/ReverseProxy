@@ -11,13 +11,21 @@ import org.hyperic.sigar.Mem;
 import org.hyperic.sigar.Cpu;
 
 class UDPAgent{
+    private InetAddress mcGroupIP;
+    private MulticastSocket receiveSkt;
+    private int port;
+    
+
+    public UDPAgent(InetAddress ip, int prt){
+        this.mcGroupIP=ip;
+        this.receiveSkt=new MulticastSocket(prt);
+        this.port=prt;
+    }
 
     public static void main(String[] args){
         try{
+            UDPAgent agent=new UDPAgent(InetAddress.getByName("239.8.8.8"),8888);
             byte[] buf=new byte[10];
-            int port = 8888;
-            InetAddress mcGroupIP=InetAddress.getByName("239.8.8.8");
-            MulticastSocket receiveSkt=new MulticastSocket(port); //create multicast socket that listens on port 8888
             DatagramPacket probeRequest=new DatagramPacket(buf, 10);
             
             Sigar sigar = new Sigar();
