@@ -7,12 +7,29 @@ import java.util.Arrays;
 import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.Mac;
 
+/** 
+ * <h1>UDP Monitor</h1>
+ * The UDPMonitor class implements the component responsible for sending 
+ * multicast information request messages to UDPAgent's in the group.
+ * It receives the answers on unicast and then updates the State Table 
+ * with information of the back-end servers.
+ *
+ * @author Grupo 49
+ * @version 1.0
+ *
+ */
 class UDPMonitor{
+
 	final static int port = 8888;
 	final static String inet_addr = "239.8.8.8";
 	final static byte[] msg = "SIR".getBytes();
     static StateTable st = new StateTable();
 
+    /**
+     * Send "SIR" messages to UDPAgent's at every 3 seconds and start
+     * thread's Reverse Proxy and to listen UDPAgent's reponses.
+     * @param args main method arguments
+     */
 	public static void main(String[] args) throws UnknownHostException, InterruptedException {
 	    InetAddress addr = InetAddress.getByName(inet_addr);
 	    Timer t = new Timer();
@@ -41,22 +58,44 @@ class UDPMonitor{
 
 }
 
+/**
+ * <h2>Timer</h2>
+ * The Timer class is used to calculate RTT (Round Trip Time) between messages
+ * sended by UDPMonitor and the answers received by UDPAgent's.
+ */
 class Timer{
+	
 	long time;
     
+    /**
+     * Constructor for Timer class.
+     */
     Timer(){
         this.time=System.currentTimeMillis();
     }
 
+    /**
+     * Update the Timer time.
+     * @param t time used to make the update
+     */
     void update(long t){
         this.time = t;
     }
 
+    /**
+     * Method to get Timer time.
+     * @return value of time
+     */
     long get(){
         return this.time;
     }
 }
 
+/**
+ * <h2>ListenUDPAgents</h2>
+ * The ListUDPAgents class is responsible for receiving the messages
+ * from UDPAgent's, calculate RTT using Timer class and update State Table.
+ */
 class ListenUDPAgents implements Runnable {
 
 	DatagramSocket serverSocket;
@@ -64,6 +103,12 @@ class ListenUDPAgents implements Runnable {
     Timer t;
     byte[] key;
 
+    /**
+     * Constructor for class ListenUDPAgents.
+     * @param ss     server socket
+     * @param st  	 state table
+     * @param timer  object of Timer class used to calculate RTT 
+     */
 	public ListenUDPAgents(DatagramSocket ss, StateTable st, Timer timer){
 		this.serverSocket = ss;
         this.st = st;
@@ -75,6 +120,10 @@ class ListenUDPAgents implements Runnable {
         }
     }
 
+    /**
+     * Method required by all Runnable classes.
+     * Receives and process messages from UDPAgent's
+     */
     public void run() {
     	try{
 			String msg;
@@ -136,6 +185,11 @@ class ListenUDPAgents implements Runnable {
         }
 	}
 
+	/**
+	 * Method used to remove padding from messages.
+	 * @param bytes array of bytes to process
+	 * @return array of bytes processed with no padding
+	 */
     byte[] trim(byte[] bytes){
     	int i = bytes.length - 1;
     	
