@@ -7,6 +7,9 @@ jdk:
 before_script:
     #    - cd src
 script:
-    - javac *.java
+    - javac UDPMonitor.java StateTable.java ReverseProxy.java
+    - javac UDPAgent.java -classpath Sigar/sigar.jar
 after_script:
     - bash -c "$(curl -fsSL https://raw.githubusercontent.com/MaT1g3R/travis_discord/master/travis.sh)"
+notifications:
+  email: false
