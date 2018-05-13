@@ -28,7 +28,6 @@ class UDPMonitor{
     /**
      * Send "SIR" messages to UDPAgent's at every 3 seconds and start
      * thread's Reverse Proxy and to listen UDPAgent's reponses.
-     * @param args main method arguments
      */
 	public static void main(String[] args) throws UnknownHostException, InterruptedException {
 	    InetAddress addr = InetAddress.getByName(inet_addr);

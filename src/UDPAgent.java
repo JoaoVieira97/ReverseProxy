@@ -21,86 +21,127 @@ import org.hyperic.sigar.Cpu;
  *
  */
 class UDPAgent{
+    private static String key="abcdfasdgasefdgsdp";
+
     private InetAddress mcGroupIP;
     private MulticastSocket receiveSkt;
+    private DatagramSocket sendSkt;
     private int port;
+    private SecretKeySpec secretKey;
+    private DatagramPacket probeRequest;
     
 
-    public UDPAgent(InetAddress ip, int prt){
+    public UDPAgent(InetAddress ip, int prt, byte[] key){
         this.mcGroupIP=ip;
         this.receiveSkt=new MulticastSocket(prt);
         this.port=prt;
+        this.secretKey=new SecretKeySpec(key, "AES");
+        this.probeRequest=new DatagramPacket(new byte[10], 10);
+        this.sendSkt=new DatagramSocket();
     }
 
     /**
-     * Send information of server to UDPMonitor and uses hashing to
+     * Send server related information to UDPMonitor and uses HMAC to
      * to ensure authenticity and integrity.
-     * @param args main method arguments
      */
     public static void main(String[] args){
         try{
-            UDPAgent agent=new UDPAgent(InetAddress.getByName("239.8.8.8"),8888);
-            byte[] buf=new byte[10];
-            DatagramPacket probeRequest=new DatagramPacket(buf, 10);
-            
-            Sigar sigar = new Sigar();
-            Mem mem;
-            Cpu cpu;
-            String msg, resp;
-            long memFree;
-            float cpuTotalTime, cpuPerc;
-            byte[] receiveData=new byte[300];
-            byte[] response, fullResponse, hash;
+            UDPAgent agent=new UDPAgent(InetAddress.getByName("239.8.8.8"),8888, UDPAgent.key.getBytes("UTF-8"));
             Mac hmac256 = Mac.getInstance("HmacSHA256");
-            byte[] key="abcdfasdgasefdgsdp".getBytes("UTF-8");
-            SecretKeySpec secretKey = new SecretKeySpec(key, "AES");
             DatagramPacket msgR;
             
-            DatagramSocket sendSkt = new DatagramSocket();
+            Sigar sigar = new Sigar();
+            Cpu cpu;
+            String rcvd;
 
-            System.out.println("Recieving at: "+mcGroupIP);
-            receiveSkt.joinGroup(mcGroupIP);
-            
+            long memFree;
+            float cpuTotalTime, cpuPerc;
+                        
+            agent.init();
+
             do{
-                System.out.println("Waiting for data...");
-                receiveSkt.receive(probeRequest);
-                receiveData=probeRequest.getData();
-                msg=new String(receiveData,0,probeRequest.getLength());
+                rcvd = agent.waitRequest();
+                System.out.println(rcvd); //debugging purposes
                 
-                System.out.println("Recieved: "+msg);
-
-                String rcvd = new String(probeRequest.getData(), 0, probeRequest.getLength()) + ", from address: "+ probeRequest.getAddress() + ", port: " + probeRequest.getPort();
-                System.out.println(rcvd);
-                
-                //get state from server
-                mem = sigar.getMem();
-                cpu = sigar.getCpu();
-                memFree = mem.getFree();
-                cpuTotalTime = cpu.getTotal(); 
+                //Retreive server state
+                memFree = sigar.getMem().getFree();
+                cpuTotalTime = sigar.getCpu().getTotal(); 
                 cpuPerc = (cpuTotalTime-cpu.getIdle())/cpuTotalTime;
                 
-                //create message and hash 
-                resp = "SIRR\n" + cpuPerc + ";;" + memFree;
-                response = resp.getBytes("UTF-8");
-                hmac256.reset();
-                hmac256.init(secretKey);
-                hmac256.update(response);
-                hash = hmac256.doFinal();
-                
-                fullResponse=new byte[response.length+hash.length];
-                System.arraycopy(hash, 0, fullResponse, 0, hash.length);
-                System.arraycopy(response, 0, fullResponse, hash.length, response.length);
+                msgR = agent.createMessage(hmac256,memFree,cpuPerc);;
+                agent.sendMessage(msgR);
+            }while(!rcvd.equals("CT"));
 
-                msgR = new DatagramPacket(fullResponse, fullResponse.length, probeRequest.getAddress(), probeRequest.getPort());
-				sendSkt.send(msgR);
-
-            }while(!msg.equals("CT"));
-
-            receiveSkt.leaveGroup(mcGroupIP);
-            receiveSkt.close();
+            agent.cleanUp();
         }catch(Exception e){
             e.printStackTrace();
         }   
+    }
+
+    /**
+     * Joins the multicast group
+     */
+    public void init(){
+        this.receiveSkt.joinGroup(this.mcGroupIP);
+        System.out.println("Recieving at: "+this.mcGroupIP);
+    }
+
+    /**
+     * Waits for a <b>SIR</b>(Server Information Request) packet
+     * @return string with the contents of the packet recieved and the IP and port that it came from
+     */
+    public String waitRequest(){
+        String msg;
+        byte[] receiveData=new byte[300];
+
+        System.out.println("Waiting for data...");
+        this.receiveSkt.receive(this.probeRequest);
+        receiveData=this.probeRequest.getData();
+
+        msg=new String(receiveData,0,probeRequest.getLength());
+
+        if(!msg.equals("CT")) return msg;
+        else return (msg+", from address: "+ probeRequest.getAddress() + ", port: " + probeRequest.getPort());
+    }
+
+    /**
+     * Method responsible for creating the message to be sent with info related to the HTTP server.
+     * @param hmac256   hmac digest used for authentication and integrity of the message being sent
+     * @param freeMem   amount of free memory(RAM) in the HTTP server
+     * @param cpuUsage  amount of cpu being used at a given instant by the HTTP server
+     * @return packet containing server info aswell as the hash associated with it
+     */
+    public DatagramPacket createMessage(Mac hmac256, long freeMem, float cpuUsage){
+        String resp;
+        byte[] response, fullResponse, hash;
+
+        resp = "SIRR\n" + cpuUsage + ";;" + freeMem;
+        response = resp.getBytes("UTF-8");
+        hmac256.reset();
+        hmac256.init(secretKey);
+        hmac256.update(response);
+        hash = hmac256.doFinal();
+
+        fullResponse=new byte[response.length+hash.length];
+        System.arraycopy(hash, 0, fullResponse, 0, hash.length);
+        System.arraycopy(response, 0, fullResponse, hash.length, response.length);
+
+        return new DatagramPacket(response, response.length, probeRequest.getAddress(), probeRequest.getPort());
+    }
+
+    /**
+     * Sends a single datagram via it's datagram socket.
+     */
+    public void sendMessage(DatagramPacket msg){
+        this.sendSkt.send(msg);
+    }
+
+    /**
+     * Method is responsible for closing the sockekt and unsubscribing the multicast group
+     */
+    void cleanUp(){
+        receiveSkt.leaveGroup(this.mcGroupIP);
+        receiveSkt.close();
     }
     
 }
