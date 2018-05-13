@@ -123,7 +123,7 @@ class UDPAgent{
         resp = "SIRR\n" + cpuUsage + ";;" + freeMem;
         response = resp.getBytes("UTF-8");
         hmac256.reset();
-        hmac256.init(secretKey);
+        hmac256.init(this.secretKey);
         hmac256.update(response);
         hash = hmac256.doFinal();
 
