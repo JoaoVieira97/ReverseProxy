@@ -5,6 +5,10 @@ import java.net.InetAddress;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Arrays;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.InvalidKeyException;
+
 
 import org.hyperic.sigar.Sigar;
 import org.hyperic.sigar.Mem;
@@ -31,7 +35,7 @@ class UDPAgent{
     private DatagramPacket probeRequest;
     
 
-    public UDPAgent(InetAddress ip, int prt, byte[] key){
+    public UDPAgent(InetAddress ip, int prt, byte[] key) throws IOException{
         this.mcGroupIP=ip;
         this.receiveSkt=new MulticastSocket(prt);
         this.port=prt;
@@ -65,7 +69,8 @@ class UDPAgent{
                 
                 //Retreive server state
                 memFree = sigar.getMem().getFree();
-                cpuTotalTime = sigar.getCpu().getTotal(); 
+                cpu=sigar.getCpu();
+                cpuTotalTime = cpu.getTotal(); 
                 cpuPerc = (cpuTotalTime-cpu.getIdle())/cpuTotalTime;
                 
                 msgR = agent.createMessage(hmac256,memFree,cpuPerc);;
@@ -81,7 +86,7 @@ class UDPAgent{
     /**
      * Joins the multicast group
      */
-    public void init(){
+    public void init() throws IOException{
         this.receiveSkt.joinGroup(this.mcGroupIP);
         System.out.println("Recieving at: "+this.mcGroupIP);
     }
@@ -90,7 +95,7 @@ class UDPAgent{
      * Waits for a <b>SIR</b>(Server Information Request) packet
      * @return string with the contents of the packet recieved and the IP and port that it came from
      */
-    public String waitRequest(){
+    public String waitRequest() throws IOException{
         String msg;
         byte[] receiveData=new byte[300];
 
@@ -111,7 +116,7 @@ class UDPAgent{
      * @param cpuUsage  amount of cpu being used at a given instant by the HTTP server
      * @return packet containing server info aswell as the hash associated with it
      */
-    public DatagramPacket createMessage(Mac hmac256, long freeMem, float cpuUsage){
+    public DatagramPacket createMessage(Mac hmac256, long freeMem, float cpuUsage) throws UnsupportedEncodingException,InvalidKeyException{
         String resp;
         byte[] response, fullResponse, hash;
 
@@ -132,14 +137,14 @@ class UDPAgent{
     /**
      * Sends a single datagram via it's datagram socket.
      */
-    public void sendMessage(DatagramPacket msg){
+    public void sendMessage(DatagramPacket msg) throws IOException{
         this.sendSkt.send(msg);
     }
 
     /**
      * Method is responsible for closing the sockekt and unsubscribing the multicast group
      */
-    void cleanUp(){
+    void cleanUp() throws IOException{
         receiveSkt.leaveGroup(this.mcGroupIP);
         receiveSkt.close();
     }

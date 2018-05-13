@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.SocketException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -19,41 +20,66 @@ import javax.crypto.Mac;
  *
  */
 class UDPMonitor{
-
 	final static int port = 8888;
 	final static String inet_addr = "239.8.8.8";
 	final static byte[] msg = "SIR".getBytes();
     static StateTable st = new StateTable();
 
+    private DatagramSocket sSocket;
+    private DatagramPacket sirPacket;
+    private InetAddress addr;
+
+    public UDPMonitor(InetAddress ipAddr) throws SocketException{
+        this.addr=ipAddr;
+        this.sSocket=new DatagramSocket();
+        this.sirPacket=new DatagramPacket(UDPMonitor.msg, UDPMonitor.msg.length, this.addr, UDPMonitor.port);
+    }
+
     /**
-     * Send "SIR" messages to UDPAgent's at every 3 seconds and start
+     * Send <b>SIR</b> messages to the multicast address every 3 seconds and start
      * thread's Reverse Proxy and to listen UDPAgent's reponses.
      */
 	public static void main(String[] args) throws UnknownHostException, InterruptedException {
-	    InetAddress addr = InetAddress.getByName(inet_addr);
+	    InetAddress addr=InetAddress.getByName(inet_addr);
 	    Timer t = new Timer();
 
-		try (DatagramSocket serverSocket = new DatagramSocket()){
-			Thread agentUDPResponse = new Thread(new ListenUDPAgents(serverSocket,st,t));
-			agentUDPResponse.start();
-            Thread reverseProxy = new Thread(new ReverseProxy(st));
-            reverseProxy.start();
-            
-            //sends UDP datagrams with the mensage "SIR" 3 in 3 seconds
+		try{
+            UDPMonitor monitor=new UDPMonitor(addr);
+            monitor.init(t);
+			            
             System.out.println("Sending");
-			while (true){
-				Thread.sleep(3 * 1000);
-				DatagramPacket msgPacket = new DatagramPacket(msg, msg.length, addr, port);
-				serverSocket.send(msgPacket);
+			while(true){
+				Thread.sleep(3 * 1000); //send datagram every 3 seconds
+                monitor.sendMessage(); 
 				synchronized(t){
                     t.update(System.currentTimeMillis());
-			    }   
+			    }
             }
 		}
 		catch (IOException e){
 			e.printStackTrace();
 		}
   	}
+
+    /**
+     * Initializes the reverse proxy and the thread
+     * responsible for handling UDPAgents messages
+     * @param t timer used for RTT calculation
+     */
+    public void init(Timer t){
+        Thread agentUDPResponse = new Thread(new ListenUDPAgents(this.sSocket,UDPMonitor.st,t));
+		agentUDPResponse.start();
+        Thread reverseProxy = new Thread(new ReverseProxy(UDPMonitor.st));
+        reverseProxy.start();
+    }
+
+    /**
+     * Sends a datagram containing a <b>SIR</b> about the
+     * servers that are members of the multicast group.
+     */
+    public void sendMessage() throws IOException{
+        this.sSocket.send(this.sirPacket);
+    }
 
 }
 
@@ -63,7 +89,6 @@ class UDPMonitor{
  * sended by UDPMonitor and the answers received by UDPAgent's.
  */
 class Timer{
-	
 	long time;
     
     /**
@@ -92,15 +117,14 @@ class Timer{
 
 /**
  * <h2>ListenUDPAgents</h2>
- * The ListUDPAgents class is responsible for receiving the messages
- * from UDPAgent's, calculate RTT using Timer class and update State Table.
+ * The ListenUDPAgents class is responsible for receiving the messages
+ * from each UDPAgent, calculate the RTT using Timer class and updating State Table.
  */
 class ListenUDPAgents implements Runnable {
-
-	DatagramSocket serverSocket;
-    StateTable st;
-    Timer t;
-    byte[] key;
+	private DatagramSocket serverSocket;
+    private StateTable st;
+    private Timer t;
+    private byte[] key;
 
     /**
      * Constructor for class ListenUDPAgents.
@@ -120,7 +144,7 @@ class ListenUDPAgents implements Runnable {
     }
 
     /**
-     * Method required by all Runnable classes.
+     * Method required by all classes implementing the Runnable interface.
      * Receives and process messages from UDPAgent's
      */
     public void run() {
