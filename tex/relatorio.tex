@@ -24,21 +24,21 @@ Após a implementação de um serviço de distribuição de carga com servidor \
 \end{abstract}
 
 \section{Introdução}
-O trabalho desenvolvido tem como objetivo a implementação de um serviço de distribuição de carga com servidor \textit{proxy} invertido usado quando há a necessidade de mais do que um servidor a atender vários clientes devido ao grande volume dos mesmos e pretende-se manter um único endereço IP público.
+O trabalho desenvolvido tem como objetivo a implementação de um serviço de distribuição de carga com servidor \textit{proxy} invertido. Este tipo de serviço é usado quando há mais do que um servidor a atender vários clientes (devido ao grande volume dos mesmos) e se pretende- manter um único endereço IP público.
 
 \section{Arquitetura da solução}
 Pretende-se implementar um serviço de distribuição de carga com servidor \textit{proxy} invertido, no qual existe um servidor com um endereço IP público (o Reverse Proxy) que atende todos os clientes, direccionando-os para um dos servidores HTTP de \textit{back-end} disponíveis. 
-É importante referir é que no nosso trabalho as conexões dos clientes não são desviadas, sendo criado um ``túnel'' no Reverse Proxy entre o servidor HTTP de \textit{back-end} escolhido e o cliente. Esta decisão foi tomada devido à menor complexidade envolvida na sua implementação representando, no entanto, um ponto de falha grave no Reverse Proxy.
+É importante referir é que no nosso trabalho as conexões dos clientes não são desviadas, sendo criado um ``túnel'' no Reverse Proxy entre o servidor HTTP de \textit{back-end} e o cliente. Esta decisão foi tomada devido à menor complexidade envolvida na sua implementação, representando, no entanto, um ponto de falha grave no Reverse Proxy.
 O sistema desenvolvido pode ser dividido em 3 componentes princpais: MonitorUDP, Tabela de Estados e o ``Reverse Proxy''. 
 
-O MonitorUDP envia, em \textit{multicast}, um datagrama UDP de 3 em 3 segundos para todos os agenteUDP's (um por cada servidor HTTP \textit{back-end}) estes respondem depois, em \textit{unicast}, com informação relativa ao estado do servidor a que se encontram associados. O MonitorUDP, ao receber um datagrama UDP de um dos agenteUDP's, calcula o RTT (Round Trip Time), obtém o IP e porta de origem do datagrama e atualiza a Tabela de Estados referente ao servidor HTTP \textit{back-end} do qual foi recebido o datagrama.
+O MonitorUDP envia, em \textit{multicast}, um datagrama UDP de 3 em 3 segundos para todos os agenteUDP's (um por cada servidor HTTP \textit{back-end}) estes respondem depois, em \textit{unicast}, com informação relativa ao estado do servidor a que se encontram associados. O MonitorUDP, ao receber um datagrama UDP de um dos agenteUDP's, calcula o RTT, obtém o IP e porta de origem do datagrama e atualiza a Tabela de Estados referente ao servidor HTTP \textit{back-end} do qual foi recebido o datagrama.
 
 A Tabela de Estados possui, em cada linha, informação referente a um único servidor HTTP \textit{back-end}, sendo que esta informação é organizada da seguinte maneira:
 
 \begin{verbatim}
 IP;;Porta;;CPU_usado;;RAM_livre;;RTT;;BW(bandwidth)
 \end{verbatim}
-em que o 3º parâmetro (CPU\_usado) é uma percentagem, a RAM\_livre corresponde a quantidade de memória em bytes, o RTT representa um intervalo de tempo em milisegundos, e a BW (bandwidth) é um tamanho em Kbytes por segundo (Kbps).
+em que o 3º parâmetro (CPU\_usado) se encontra em percentagem, a RAM\_livre corresponde à quantidade de memória em bytes, o RTT representa um intervalo de tempo em milisegundos, e a BW (bandwidth) é um débito em Kbytes por segundo (Kbps).
 
 Quanto ao ``Reverse Proxy'', quando este recebe um pedido de conexão de um cliente, tem que escolher, com recurso a um algoritmo pré-estabelecido,  um servidor HTTP (da Tabela de Estados anteriormente referida), criar uma ligação TCP entre o mesmo (servidor HTTP) e o cliente, e atualizar, periodicamente, o valor da bandwidth para esse servidor.
 
@@ -109,7 +109,7 @@ Já em relação às bibliotecas predefinidas do Java destacam-se as que permite
     \item java.net.MulticastSocket: permite a criação de um grupo \textit{multicast}
 \end{itemize}
 
-O algoritmo usado na escolha do servidor HTTP (para um dado cliente) por parte do Reverse Proxy tem em conta os valores armazenados na StateTable nomeadamente: percentagem de memória livre, percentagem de CPU usado, RTT e bandwidth (banda larga). O peso associado a cada um dos parâmetros é de 25\% (1/4=0.25). Por forma a que todos os parâmetros tenham efetivamente o mesmo peso no algoritmo de escolha é necesário garantir que todos sejam valores percentuais. Para tal o RTT é dividido por 3000ms (3s, o tempo entre datagramas enviados pelo UDPMonitor), a memória livre e a bandwidth são divididas pelo valor máximo já encontrado para cada um dos campos garantindo que os valores se encontrão sempre entre 0 e 1. A seguinte fórmula é aplicada a cada linha da tabela:
+O algoritmo usado na escolha do servidor HTTP (para um dado cliente) por parte do Reverse Proxy tem em conta os valores armazenados na StateTable nomeadamente: percentagem de memória livre, percentagem de CPU usado, RTT e bandwidth (banda larga). O peso associado a cada um dos parâmetros é de 25\% (1/4=0.25). Por forma a que todos os parâmetros tenham efetivamente o mesmo peso no algoritmo de escolha é necessário garantir que todos sejam valores percentuais. Para tal o RTT é dividido por 3000ms (3s, o tempo entre datagramas enviados pelo UDPMonitor), a memória livre e a bandwidth são divididas pelo valor máximo já encontrado para cada um dos campos garantindo que os valores se encontrão sempre entre 0 e 1. A seguinte fórmula é aplicada a cada linha da tabela:
 \begin{verbatim}
 res = 0.25 * percentagem_de_uso_do_CPU - 0.25 * memoria_RAM_livre / maxRAM 
 	+ 0.25 * RTT / 3000 + 0.25 * BW / maxBW;
@@ -175,6 +175,7 @@ O trabalho realizado cumpre os requisitos propostos podendo, no entanto, ser mel
     \item [TCP] Transmission Control Protocol
     \item [UDP] User Datagram Protocol
     \item [HTTP] Hypertext Transfer Protocol
+    \item [IP] Internet Protocol
     \item [PDU] Protocol Data Unit
     \item [SIR] Server Information Request
     \item [SIRR] Server Information Request Response
