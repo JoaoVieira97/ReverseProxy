@@ -167,6 +167,20 @@ ao servidor Reverse Proxy (endereço IP: 10.0.0.13). Após isto, basta verificar
     \includegraphics[height=13cm]{teste2.png}
 \end{figure}
 
+Outro dos testes efetuados para verificar se o sistema implementado funciona corretamente foi recorrendo ao browser \texttt{lynx} e ao ficheiro \textit{html} \texttt{index.html} obtido através da página \underline{http://miei.di.uminho.pt/} e colocado em \texttt{/srv/ftp/}. Desta forma, o pedido realizado ao Reverse Proxy a partir do cliente é o seguinte:
+
+\begin{verbatim}
+$ lynx -term=linux 10.0.0.13/
+\end{verbatim}
+Os resultados podem ser observados de seguida:
+
+\begin{figure}[H]
+    \advance\leftskip-3.7cm
+    \includegraphics[height=10cm]{teste3.png}
+\end{figure}
+
+\newpage
+
 \section{Conclusões e trabalho futuro}
 O trabalho realizado cumpre os requisitos propostos podendo, no entanto, ser melhorado, no sentido em que em vez do Reverse Proxy realizar a ligação entre o servidor \textit{back-end} e o cliente, esta ligação seria estabelecida diretamente entre ambos enviando, para isso, o endereço do servidor \textit{back-end} ao cliente evitando que se estabeleça um ponto de falha no Reverse Proxy.
 
