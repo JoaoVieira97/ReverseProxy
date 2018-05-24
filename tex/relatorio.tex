@@ -29,7 +29,7 @@ O trabalho desenvolvido tem como objetivo a implementação de um serviço de di
 \section{Arquitetura da solução}
 Pretende-se implementar um serviço de distribuição de carga com servidor \textit{proxy} invertido, no qual existe um servidor com um endereço IP público (o Reverse Proxy) que atende todos os clientes, direccionando-os para um dos servidores HTTP de \textit{back-end} disponíveis. 
 É importante referir é que no nosso trabalho as conexões dos clientes não são desviadas, sendo criado um ``túnel'' no Reverse Proxy entre o servidor HTTP de \textit{back-end} e o cliente. Esta decisão foi tomada devido à menor complexidade envolvida na sua implementação, representando, no entanto, um ponto de falha grave no Reverse Proxy.
-O sistema desenvolvido pode ser dividido em 3 componentes princpais: MonitorUDP, Tabela de Estados e o ``Reverse Proxy''. 
+O sistema desenvolvido pode ser dividido em 3 componentes principais: MonitorUDP, Tabela de Estados e o ``Reverse Proxy''. 
 
 O MonitorUDP envia, em \textit{multicast}, um datagrama UDP de 3 em 3 segundos para todos os agenteUDP's (um por cada servidor HTTP \textit{back-end}) estes respondem depois, em \textit{unicast}, com informação relativa ao estado do servidor a que se encontram associados. O MonitorUDP, ao receber um datagrama UDP de um dos agenteUDP's, calcula o RTT, obtém o IP e porta de origem do datagrama e atualiza a Tabela de Estados referente ao servidor HTTP \textit{back-end} do qual foi recebido o datagrama.
 
@@ -54,11 +54,11 @@ A arquitetura descrita encontra-se ilustrada na seguinte figura:
 As mensagens trocadas entre os UDPAgent's e o UDPMonitor são de dois tipos: 
 \begin{itemize}
     \item mensagens enviadas pelo UDPMonitor, em \textit{multicast}, para todos os UDPAgent's
-    \item mensagens de cada UDPAgent, quando recebe a mensagem do UDPMonitor, para o mesmo em \textit{unicast}
+    \item mensagens de cada UDPAgent, quando recebe a mensagem do UDPMonitor, para o UDPMonitor em \textit{unicast}
 \end{itemize}
 
 A mensagem enviada do UDPMonitor para todos os membros do grupo \textit{multicast} tem o intuito de pedir informação referente ao estados dos servidores HTTP e, como tal, possui um formato simples, sendo o seu conteúdo a seguinte \texttt{String}: ``SIR''.
-Já a mensagem \textit{unicast}, de cada UDPAgent para o UDPMonitor em resposta à mensagem anteriormente descrita contém toda informação referente ao estado de um dado serivdor HTTP e, como tal, apresenta o seguinte formato:
+Já a mensagem \textit{unicast}, de cada UDPAgent para o UDPMonitor em resposta à mensagem anteriormente descrita contém toda informação referente ao estado de um dado servidor HTTP e, como tal, apresenta o seguinte formato:
 \begin{verbatim}
 SIRR
 percentagem_de_uso_do_CPU;;memoria_RAM_livre
@@ -84,7 +84,7 @@ O trabalho foi desenvolvido utilizando a linguangem de programação Java e, com
     \item [UDPAgent] Responde em \textit{unicast} ao MonitorUDP com o estado do servidor HTTP a que está associado
     \item [ListenUDPAgents (Thread do UDPMonitor)] Recolhe os datagramas enviados pelos UDPAgent's e atualiza com estes datagramas a Tabela de Estados (StateTable)
     \item [Timer] Usado pelo UDPMonitor e pelo ListenUDPAgents de modo a calcular o RTT das ligações com os servidores
-    \item [ReverseProxy] O Reverse Proxy funciona como um servidor TCP recebendo pedidos na porta 80 dos clientes
+    \item [ReverseProxy (Thread do UDPMonitor)] O Reverse Proxy funciona como um servidor TCP recebendo pedidos na porta 80 dos clientes
     \item [Connection (Thread do ReverseProxy)] criada para tratar de cada cliente, ou seja cada cliente possui uma Thread Connection no ReverseProxy sendo que esta Thread trata de escolher o servidor HTTP da Tabela de Estados, inicia a Thread ListenFromClient e fica à escuta do servidor HTTP, e envia ainda os dados para o cliente
     \item [ListenFromClient (Thread da Connection)] Envia os dados que recebe do cliente para o servidor HTTP
 \end{description}
@@ -116,11 +116,11 @@ res = 0.25 * percentagem_de_uso_do_CPU - 0.25 * memoria_RAM_livre / maxRAM
 \end{verbatim}
 e foi pensada de forma a que o servidor ótimo seja o que apresente o menor valor de todos os presentes na tabela.
 
-Para garantir a autenticidade e a integridade das mensagens trocadas entre o UDPMonitor e o UDPAgent é usada uma chave conhecida tanto pelo Monitor como pelos Agent's, esta chave é uma \texttt{String} arbitrária e com o valor de "\textbf{abcdfasdgasefdgsdp}". A partir daqui, e supondo que \texttt{msg} é o conteúdo que é necessário ser enviado do UDPAgent para o UDPMonitor, acrescentamos no início desta mesma mensagem a \texttt{hash} associada à mensagem e à chave acima indicada, esta \texttt{hash} é obtida com recurso ao algoritmo SHA256 que gera uma \texttt{hash} de 256 bits ou 32 bytes. Desta forma, o pacote enviado pelo UDPAgent ao UDPMonitor é "\texttt{hash} (32 bytes) + \texttt{msg}". Quando este mesmo pacote é recebido pelo UDPMonitor, este extrái o mesmo para um conjunto de bytes, e separa a \texttt{hash} da \texttt{msg}. Após isto, calcula uma nova \texttt{hash} da \texttt{msg} tendo em conta a chave que partilhada entre o mesmo e o UPDAgent, e compara o mesmo com o valor de \texttt{hash} extraído anteriomente, caso o valor seja o mesmo garante-se tanto a autenticidade como a integridade da mensagem recebida.
+Para garantir a autenticidade e a integridade das mensagens trocadas entre o UDPMonitor e o UDPAgent é usada uma chave conhecida tanto pelo Monitor como pelos Agent's, esta chave é uma \texttt{String} arbitrária e com o valor de "\textbf{abcdfasdgasefdgsdp}". A partir daqui, e supondo que \texttt{msg} é o conteúdo que é necessário ser enviado do UDPAgent para o UDPMonitor, acrescentamos no início desta mesma mensagem a \texttt{hash} associada à mensagem e à chave acima indicada, esta \texttt{hash} é obtida com recurso ao algoritmo SHA256 que gera uma \texttt{hash} de 256 bits ou 32 bytes. Desta forma, o pacote enviado pelo UDPAgent ao UDPMonitor é "\texttt{hash} (32 bytes) + \texttt{msg}". Quando este mesmo pacote é recebido pelo UDPMonitor, este extrái o mesmo para um conjunto de bytes, e separa a \texttt{hash} da \texttt{msg}. Após isto, calcula uma nova \texttt{hash} da \texttt{msg} tendo em conta a chave que é partilhada entre o mesmo e o UPDAgent, e compara o mesmo com o valor de \texttt{hash} extraído anteriormente, caso o valor seja o mesmo garante-se tanto a autenticidade como a integridade da mensagem recebida.
 
-O cálculo da \textit{bandwidth} ofereceu alguns obstáculos na obtenção de um valor representativo, sendo que uma das decisões tomadas nestes sentido foi a adição da \textit{bandwidth} (\texttt{BW}) da ligação (tanto entre cliente-ReverseProxy como entre servidor HTTP-ReverseProxy) num dado instante ao valor presente na Tabela de Estados. Porém esta abordagem apresentava um problema, visto que a \textit{bandwidth} iria aumentar indefinidamente, algo que não acontece na realidade. Este problema é resolvido guardando valor da \textit{bandwidth} anterior (\texttt{prevBW}) e, na altura da adição, em vez de se adicionar \texttt{BW} adiciona-se (\texttt{BW-prevBW}). Para além disso, de modo a que, quando uma determinada ligação caia esta não mantenha o valor da \textit{bandwidth} na tabela (visto a mesma já não ter influência no mesmo), subtrai-se \texttt{BW} ao valor existente na Tabela de Estados. Apesar de tudo a abordagem descrita apresentava ainda um problema, visto que a maior parte das vezes a \textit{bandwidth} era igual a 0, algo justificado pelo pequeno intervalo de tempo e pequeno número de bytes usado para calcular a \textit{bandwidth}. Sendo assim, em vez de este ser calculado a cada 1024 bytes passa a ser calculado de 20 em 20 ciclos de 1024 bytes. A fórmula usada para calcular a \textit{bandwidth} é a seguinte:
+O cálculo da \textit{bandwidth} ofereceu alguns obstáculos na obtenção de um valor representativo, sendo que uma das decisões tomadas nestes sentido foi a adição da \textit{bandwidth} (\texttt{BW}) da ligação (tanto entre cliente-ReverseProxy como entre servidor HTTP-ReverseProxy) num dado instante ao valor presente na Tabela de Estados. Porém esta abordagem apresentava um problema, visto que a \textit{bandwidth} iria aumentar indefinidamente, algo que não acontece na realidade. Este problema é resolvido guardando o valor da \textit{bandwidth} anterior (\texttt{prevBW}) e, na altura da adição, em vez de se adicionar \texttt{BW} adiciona-se (\texttt{BW-prevBW}). Para além disso, de modo a que, quando uma determinada ligação caia esta não mantenha o valor da \textit{bandwidth} na tabela (visto a mesma já não ter influência no mesmo), subtrai-se \texttt{BW} ao valor existente na Tabela de Estados. Apesar de tudo a abordagem descrita apresentava ainda um problema, visto que a maior parte das vezes a \textit{bandwidth} era igual a 0, algo justificado pelo pequeno intervalo de tempo e pequeno número de bytes usado para calcular a \textit{bandwidth}. Sendo assim, em vez de este ser calculado a cada 1024 bytes passa a ser calculado de 20 em 20 ciclos de 1024 bytes. A fórmula usada para calcular a \textit{bandwidth} é a seguinte:
 \begin{verbatim}
-time (em s) = (timeInicio (em ms) - timeFim (em ms)) / 1000
+time (em s) = (timeFim (em ms) - timeInicio (em ms)) / 1000
 BW (em Kbps) = (nRT (número de bytes lidos)/1024) / time
 \end{verbatim}
 No caso de, numa determinada ligação, o número de ciclos  não seja múltiplo de 20 a fórmula acima apresentada é aplicada.
@@ -190,4 +190,5 @@ O trabalho realizado cumpre os requisitos propostos podendo, no entanto, ser mel
 Imagem na secção Arquitetura da Solução: Enunciado do Trabalho\\
 Sigar Download: https://sourceforge.net/projects/sigar/\\
 Sigar API: http://cpansearch.perl.org/src/DOUGM/hyperic-sigar-1.6.3-src/docs/javadoc/index.html\\
+Java API: https://docs.oracle.com/javase/8/docs/api/\\
 \end{document}
