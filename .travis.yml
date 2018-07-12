@@ -7,6 +7,6 @@ jdk:
 before_script:
     #    - cd src
 script:
-    - javac *.java
+    - ./gradlew build
 after_script:
     - bash -c "$(curl -fsSL https://raw.githubusercontent.com/MaT1g3R/travis_discord/master/travis.sh)"
