@@ -16,5 +16,6 @@
 ## Binaries
 **/*.class
 
-## Libraries
-**/Sigar/*
+## Build Files
+build/**
+.gradle/**

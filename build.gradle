@@ -1,0 +1,16 @@
+apply plugin: 'java'
+
+repositories{
+    mavenCentral()
+}
+
+dependencies{
+    compile("com.github.votoanthuan:sigar:1.6.4")
+    testCompile("junit:junit")
+}
+
+
+jar{
+    baseName='gs-reverse-proxy'
+    version='1.0'
+}
